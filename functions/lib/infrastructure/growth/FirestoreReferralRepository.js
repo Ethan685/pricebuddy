@@ -1,0 +1,90 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FirestoreReferralRepository = void 0;
+const admin = __importStar(require("firebase-admin"));
+const Resilience_1 = require("../../shared/Resilience");
+class FirestoreReferralRepository {
+    constructor() {
+        this.db = admin.firestore();
+        this.collection = this.db.collection('referrals');
+    }
+    async generateReferralCode(userId) {
+        // Check if user already has a code
+        const snapshot = await this.collection.where('userId', '==', userId).limit(1).get();
+        if (!snapshot.empty) {
+            return snapshot.docs[0].data().code;
+        }
+        // Generate new code (Retry for collision)
+        return Resilience_1.RetryHelper.withRetry(async () => {
+            const code = this.createRandomCode();
+            // Allow transaction to ensure uniqueness
+            await this.db.runTransaction(async (t) => {
+                const docRef = this.collection.doc(code);
+                const doc = await t.get(docRef);
+                if (doc.exists) {
+                    throw new Error('Code collision');
+                }
+                t.set(docRef, {
+                    code,
+                    userId,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    usageCount: 0
+                });
+            });
+            return code;
+        });
+    }
+    async validateReferralCode(code) {
+        const doc = await this.collection.doc(code).get();
+        return doc.exists;
+    }
+    async attributeReferral(code, newUserId) {
+        const docRef = this.collection.doc(code);
+        await this.db.runTransaction(async (t) => {
+            var _a;
+            const doc = await t.get(docRef);
+            if (!doc.exists)
+                return; // Silent fail or throw?
+            t.update(docRef, {
+                usageCount: admin.firestore.FieldValue.increment(1),
+                lastUsedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            // Log attribution
+            const attributionRef = this.db.collection('referral_attributions').doc();
+            t.set(attributionRef, {
+                referralCode: code,
+                refererId: (_a = doc.data()) === null || _a === void 0 ? void 0 : _a.userId,
+                refereeId: newUserId,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        });
+    }
+    createRandomCode() {
+        return Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+}
+exports.FirestoreReferralRepository = FirestoreReferralRepository;
+//# sourceMappingURL=FirestoreReferralRepository.js.map

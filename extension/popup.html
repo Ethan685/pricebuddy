@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceBuddy</title>
+    <style>
+        body {
+            width: 320px;
+            background-color: #0B1117;
+            color: #E6EDF3;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: #161B22;
+            padding: 16px;
+            border-bottom: 1px solid #30363D;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: #4F7EFF;
+        }
+
+        .content {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .status {
+            font-size: 14px;
+            color: #9BA7B4;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #4F7EFF 0%, #3E63DD 100%);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .footer {
+            padding: 12px;
+            border-top: 1px solid #30363D;
+            font-size: 12px;
+            color: #484F58;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="logo">⚡ PriceBuddy</div>
+    </div>
+    <div class="content">
+        <div class="status">
+            PriceBuddy is active and looking for deals on supported sites.
+        </div>
+        <a href="http://localhost:5174" target="_blank" class="btn">Go to Dashboard</a>
+    </div>
+    <div class="footer">
+        v1.6.0 Beta
+    </div>
+</body>
+
+</html>

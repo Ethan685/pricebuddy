@@ -1,0 +1,37 @@
+{
+    "manifest_version": 3,
+    "name": "PriceBuddy",
+    "version": "1.6.0",
+    "description": "Global Price Tracker & Cashback",
+    "permissions": [
+        "storage",
+        "activeTab",
+        "scripting",
+        "alarms"
+    ],
+    "host_permissions": [
+        "*://*.amazon.com/*",
+        "*://*.coupang.com/*",
+        "*://*.naver.com/*",
+        "https://us-central1-pricebuddy.cloudfunctions.net/*"
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "background": {
+        "service_worker": "src/background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.amazon.com/*",
+                "*://*.coupang.com/*",
+                "*://*.naver.com/*"
+            ],
+            "js": [
+                "src/content.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ]
+}

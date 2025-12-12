@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: Auth Check
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Owner Check
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Products: Public Read, NO Write (Only Admin SDK via Cloud Functions)
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if false; // Only Admin SDK via Cloud Functions 
+      
+      match /offers/{offerId} {
+        allow read: if true;
+        allow write: if false;
+      }
+      
+      match /price_history/{historyId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // Community Posts: Public Read, Auth Create, Owner Edit/Delete
+    match /community_posts/{postId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+    
+    // Comments: Public Read, Auth Create
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    // Users: Owner Read/Write (Profile info)
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow write: if false; // Only Cloud Functions
+      }
+    }
+
+    // Wallet: Strictly Owner Read, NO Write (Only Cloud Functions)
+    match /cashback_wallet/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; 
+    }
+
+    // Ledger: Strictly Owner Read, NO Write
+    match /cashback_ledger/{entryId} {
+      allow read: if isOwner(resource.data.userId);
+      allow write: if false;
+    }
+
+    // Alerts: Owner Full Access
+    match /alerts/{alertId} {
+        // resource.data check for read/update/delete existing
+        allow read, update, delete: if isOwner(resource.data.userId);
+        // request.resource.data check for creating new
+        allow create: if isOwner(request.resource.data.userId);
+    }
+
+    // Telemetry: Auth Create (for logging)
+    match /telemetry/{logId} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if false; 
+    }
+  }
+}

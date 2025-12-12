@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Wallet Test</title>
+</head>
+
+<body>
+    <h1>Fraud Detection Test</h1>
+    <button onclick="testWithdrawal()">Test Withdrawal (No Auth)</button>
+    <pre id="result"></pre>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
+
+        const firebaseConfig = {
+            apiKey: "demo-key",
+            projectId: "pricebuddy-dev"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const functions = getFunctions(app);
+        connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+
+        window.testWithdrawal = async function () {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Testing...';
+
+            try {
+                const testWithdrawal = httpsCallable(functions, 'testWithdrawal');
+                const result = await testWithdrawal({
+                    userId: 'test-user-123',
+                    amount: 10000
+                });
+
+                resultEl.textContent = JSON.stringify(result.data, null, 2);
+            } catch (error) {
+                resultEl.textContent = 'Error: ' + error.message;
+            }
+        };
+    </script>
+</body>
+
+</html>

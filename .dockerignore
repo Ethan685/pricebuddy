@@ -1,0 +1,8 @@
+node_modules
+dist
+.git
+.DS_Store
+firebase-debug.log
+artifacts
+brain
+scratch

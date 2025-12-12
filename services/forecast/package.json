@@ -1,0 +1,16 @@
+{
+    "name": "@pricebuddy/forecast",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@pricebuddy/core": "file:../../libs/core",
+        "simple-statistics": "^7.8.3"
+    },
+    "devDependencies": {
+        "typescript": "^4.9.0"
+    }
+}

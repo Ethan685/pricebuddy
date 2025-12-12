@@ -1,0 +1,17 @@
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase.config';
+
+// ... existing API methods ...
+
+export const api = {
+    // ... existing methods ...
+
+    // 💰 Add Cashback for Social Share
+    addCashback: async (amount: number, reason: string, referenceId?: string): Promise<{ success: boolean; newBalance: number }> => {
+        const fn = httpsCallable(functions, 'addCashback');
+        const res = await fn({ amount, reason, referenceId });
+        return res.data as { success: boolean; newBalance: number };
+    },
+
+    // Existing methods...
+};
