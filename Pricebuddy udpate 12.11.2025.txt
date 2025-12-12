@@ -1,0 +1,2077 @@
+ Pricebuddy update_ 12.11.2025
+
+지금 구현 상태 꽤 잘 나왔어.
+이제부터는 “데모용 V1”에서 진짜 장기 운영 가능한 프로덕션 구조로 갈아타는 단계라서,
+코드 레벨에서 뭘 고쳐야 할지/어떻게 확장해야 할지 단계별로 짚어볼게.
+
+⸻
+
+0. 현재 상태 요약 (내가 본 것)
+	•	UI
+	•	랜딩 / 검색 / 상품 상세 / 글로벌 검색까지 흐름은 잘 잡혀 있음.
+	•	“오늘만 초특가 딜”, AI Signal, Price History, Offers 카드 등 핵심 컴포넌트도 괜찮음.
+	•	FE 스택
+	•	React 19 + Vite + Tailwind + Recharts → 요즘 기준으로 OK.
+	•	repo 구조는 아마 web_app 단일 앱 형태 + 공통 libs 정도.
+	•	BE / 인텔리전스
+	•	Firebase Functions + Firestore (NoSQL)
+	•	Scraper 엔진은 adapter 구조로 되어 있고 일부 mock, Puppeteer/cheerio로 확장 예정.
+	•	Pricing / Forecast / Review / Promo 엔진은 이미 1차 구현.
+	•	AI 리뷰는 OpenAI (GPT-4o-mini) 의존.
+
+이 상태면 “데모 & 초기 베타”로는 충분한데,
+장기적으로 MAU 수십~수백만 / 일 수십만 요청까지 생각하면 구조를 좀 더 단단하게 짜야 할 포인트들이 있음.
+
+아래부터는 “실제 코드 PR 계획” 수준으로 쪼개서 이야기할게.
+
+⸻
+
+1. FE 아키텍처: “페이지+컴포넌트” → “기능 모듈” 구조로
+
+1-1. 기능별 디렉터리 구조로 리팩터링
+
+지금 상태가 pages/ 안에 랜딩/검색/상세가 섞여 있을 가능성이 높아서,
+아예 기능 모듈 기준으로 나누는 게 좋아.
+
+src/
+  app/                // 라우팅 엔트리
+  features/
+    search/
+      components/
+      api/
+      hooks/
+    product-detail/
+      components/
+      api/
+      hooks/
+    deals/
+    wallet/
+    auth/
+  shared/
+    ui/               // 버튼, 카드, 모달 같은 공통 UI
+    lib/              // util, 날짜/화폐 포맷 등
+    config/
+
+이렇게 해두면:
+	•	Antigravity/AI 코드가 섞여도 feature 단위로 갈아끼우기 쉬움
+	•	나중에 앱 / 확장 / B2B도 같은 feature 구조를 재사용하기 좋음.
+
+1-2. 데이터 패칭 계층 통일 (TanStack Query 강추)
+
+각 페이지에서 useEffect + fetch를 직접 쓰고 있다면,
+TanStack Query(react-query)로 패칭 계층을 통일하는 게 좋아.
+
+// src/features/search/api/useSearch.ts
+import { useQuery } from "@tanstack/react-query";
+import { http } from "@/shared/lib/http";
+
+export function useSearch(query: string, region: string) {
+  return useQuery({
+    queryKey: ["search", query, region],
+    queryFn: () => http.get<SearchResult>("/api/search", { query, region }),
+    enabled: !!query,
+  });
+}
+
+이렇게 하면:
+	•	캐싱 / 에러 / 로딩 상태를 통일
+	•	브라우저 확장, 모바일에서 같은 훅 재사용 가능
+
+1-3. Skeleton & ErrorBoundary 표준화
+
+이미 “Running in emulator mode…” 배너가 있으니까,
+에러/로딩 UI도 공통 컴포넌트로 묶는 게 좋다.
+
+// shared/ui/AsyncBoundary.tsx
+export function AsyncBoundary({ isLoading, error, children }) {
+  if (isLoading) return <SkeletonPage />;
+  if (error) return <ErrorState message="잠시 후 다시 시도해 주세요." />;
+  return children;
+}
+
+페이지에서 매번 if (loading) 안 쓰고,
+<AsyncBoundary>로 감싸서 관리.
+
+⸻
+
+2. Backend: Firebase Functions 한 덩어리 → 서비스 레이어 분리
+
+지금은 services/api 아래 Cloud Functions가 여러 역할(scraping, pricing, intelligence)을 다 하고 있어서,
+규모 커지면 의도치 않은 결합이 생기기 쉬워.
+
+2-1. 서비스 레이어 분리 구조 제안
+
+services/
+  api/          # HTTP 엔드포인트 (BFF 개념)
+  scraper/      # Playwright/cheerio로 크롤링
+  pricing/      # 환율/관세/배송/총액 계산
+  intelligence/
+    forecast/
+    review/
+    promo/
+  matcher/      # SKU 매칭
+
+	•	api는 Firebase Functions (또는 Cloud Run BFF)
+	•	scraper, matcher, intelligence는 Cloud Run 단독 서비스로 점진적 분리
+(초기에는 같은 Functions 안에 있다가, 부하 올라가면 service별로 쪼개기)
+
+예시: API에서 다른 서비스 호출
+
+// services/api/src/handlers/getProductOffers.ts
+import { pricingClient } from "@pricebuddy/clients/pricing";
+import { scrapeClient } from "@pricebuddy/clients/scraper";
+
+export async function getProductOffers(req, res) {
+  const { url, country } = req.query;
+
+  const rawOffers = await scrapeClient.fetchOffers(url);
+  const priced = await pricingClient.computePrices(rawOffers, country);
+
+  res.json({ offers: priced });
+}
+
+이 구조면:
+	•	나중에 scraper만 Node 22 / Playwright / Puppeteer 특화 컨테이너로 바꿔도 됨
+	•	API 계층은 “오케스트레이션 + 인증” 정도만 담당
+
+2-2. Firestore 모델링 보강
+
+Price history, alerts, wallet은 장기적으로 데이터 많아지니까, 모양을 미리 잘 잡아야 함.
+
+products/{productId}
+  title
+  brand
+  ...
+
+offers/{offerId}
+  productId
+  marketplace
+  externalId
+  latestPriceKrw
+  ...
+
+price_history/{offerId}/{day}
+  ts: timestamp
+  priceKrw
+  ...
+
+	•	price_history를 별 컬렉션으로 빼서,
+	•	오늘 가격: offers 에
+	•	과거 가격: price_history 에 저장
+→ 차트는 price_history 쿼리
+
+⸻
+
+3. Scraper 엔진: “모듈 어댑터” → “설정 기반 + 큐 기반 파이프라인”
+
+지금 “모듈 어댑터” 구조는 좋아.
+여기서 한 단계만 더 가면 운영 난이도가 확 줄어.
+
+3-1. config-driven selector
+
+각 마켓마다 DOM 구조가 바뀌면 코드 수정이 필요하니까,
+가능한 한 “CSS selector와 룰을 config로 빼두는 것” 추천.
+
+// services/scraper/src/config/coupang.ts
+export const coupangConfig = {
+  title: "h2.prod-buy-header__title",
+  price: "#totalPrice",
+  shippingFee: "#shippingFee",
+  // ...
+};
+
+파서에서:
+
+export function parseWithConfig(html: string, config: SelectorConfig): ParsedOfferOutput {
+  const $ = load(html);
+  const title = $(config.title).text().trim();
+  const price = parsePrice($(config.price).text());
+  ...
+}
+
+3-2. 큐 기반 수집
+
+지금은 “요청 올 때마다 바로 크롤링” 방식일 가능성이 큰데,
+나중에는 Background Job Queue 쓰는 게 훨씬 안정적.
+	•	Cloud Tasks, Pub/Sub, or simple Firestore queue 컬렉션
+	•	API는 “job 생성 → 기존 캐시 있으면 바로 응답, 최신 데이터는 비동기 갱신”
+
+⸻
+
+4. AI & Intelligence: 외부 API 줄이고, 자체 엔진 강화 플랜
+
+너가 말한대로 외부 API 의존 줄이는 방향으로 보강하자.
+
+4-1. Review Engine: GPT → 로컬 멀티언어 모델
+	•	지금:
+	•	GPT-4o-mini 로 리뷰 감성/키워드 분석
+	•	개선:
+	•	services/review에서 HuggingFace 멀티언어 sentiment + keyphrase 모델 로컬 로드
+	•	Cloud Run 컨테이너로 돌리면 완전 자립 구조 가능
+
+코드 스케치:
+
+# services/review/app.py
+from fastapi import FastAPI
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
+
+app = FastAPI()
+tok = AutoTokenizer.from_pretrained("nlptown/bert-base-multilingual-uncased-sentiment")
+model = AutoModelForSequenceClassification.from_pretrained(...)
+
+@app.post("/analyze")
+def analyze(req: AnalyzeRequest):
+    # texts: list[str]
+    # 1) sentiment score 평균
+    # 2) 간단 TF-IDF로 pros/cons 키워드 추출
+    ...
+
+4-2. Forecast Engine: 단순 회귀 → 시계열 모델(ARIMA or Prophet)로 분리
+
+지금 simple-statistics로 선형회귀라면:
+	•	가격이 계절성/세일 패턴 갖는 순간 예측력이 떨어짐
+	•	services/forecast를 Python microservice로 떼고,
+statsmodels(sarimax) 또는 Prophet으로 시계열 예측
+
+⸻
+
+5. Matcher / Vector DB: Pinecone 같은 외부 서비스 대신 pgvector 추천
+
+외부 Vector DB를 쓰면 편하긴 하지만,
+“의존 줄인다” 목표면 Postgres + pgvector 만으로도 충분히 커버 가능.
+	•	libs/infra에 pg 클라이언트 추가
+	•	products 테이블에 embedding vector 칼럼 추가
+	•	SELECT ... ORDER BY embedding <-> $1 LIMIT 10 방식으로 유사도 검색
+
+TypeORM 예시:
+
+const similar = await dataSource
+  .getRepository(ProductEntity)
+  .createQueryBuilder("p")
+  .orderBy("p.embedding <-> :vec", "ASC")
+  .setParameters({ vec })
+  .limit(10)
+  .getMany();
+
+
+⸻
+
+6. Wallet / Referral / Cashback: “잔고 숫자” → “원장(ledger)” 모델로
+
+지금은 Firestore에 잔고 숫자만 들고 있을 확률이 높은데,
+돈이 걸리는 부분은 반드시 원장 테이블(트랜잭션 로그)로 관리하는 게 맞다.
+
+wallets/{userId}
+  balance: number
+
+wallet_ledger/{entryId}
+  userId
+  type: "cashback" | "withdrawal" | "referral_bonus"
+  amount
+  createdAt
+  relatedOrderId
+
+	•	잔고는 ledger 집계값
+	•	UI는 ledger를 페이지네이션으로 보여줌
+	•	나중에 작은 버그 나도 ledger 재집계하면 복구 가능
+
+⸻
+
+7. 품질: 테스트 / 스토리북 / e2e
+
+7-1. FE: Storybook + Jest/RTL
+	•	랜딩 히어로, 딜 카드, 가격카드, AI Signal 컴포넌트에 Storybook 정의
+	•	@testing-library/react로 핵심 UI 로직 간단 테스트
+
+7-2. BE: 단위테스트 + 계약 테스트
+	•	Pricing / Tax / Shipping 엔진은 테스트 필수.
+	•	computePrice에 대해 여러 나라/금액/무게 케이스 다 넣어보기.
+
+test("KR under threshold has zero tax", () => {
+  const out = computePrice({ country: "KR", basePrice: 100, currency: "USD" });
+  expect(out.taxFeeKrw).toBe(0);
+});
+
+
+⸻
+
+8. “지금 V1에서 당장 할 만한 7가지 작업” 정리
+	1.	web_app 리팩터링
+	•	features 디렉터리 구조 적용
+	•	TanStack Query 도입
+	2.	API 레이어 정리
+	•	/api/search, /api/products/:id, /api/offers 정도만 남기고, 내부에서 Scraper/Pricing 호출하도록 통일
+	3.	Pricing 엔진 libs로 분리
+	•	services/pricing로 모듈화하고 테스트 작성
+	4.	Scraper 파서 config화
+	•	커머스별 selector는 config에 빼고, 파서는 공통 함수로
+	5.	Review 엔진 마이크로서비스 설계
+	•	GPT 호출 코드의 인터페이스를 앞으로도 쓸 수 있게 ReviewEngine.analyze() 인터페이스부터 정의
+	•	지금은 GPT, 나중에는 Local Model로 교체
+	6.	Wallet/Ledger 스키마 재설계
+	•	Firestore 컬렉션 구조 정리, 기존 데이터 마이그레이션 스크립트 준비
+	7.	간단 e2e 시나리오 추가
+	•	Playwright: “iPhone17 검색 → 상품 상세 → Alert 설정” 스크립트 1개만 있어도 큰 도움
+
+⸻
+
+요약하면:
+	•	지금 구조는 “V1 데모/초기 베타”로 충분히 잘 나왔다.
+	•	앞으로는
+	•	FE는 feature-based 모듈 구조 + query layer 통합
+	•	BE는 API / Scraper / Pricing / Intelligence 분리
+	•	AI/ML은 외부 의존 줄이고 자체 엔진으로 옮길 준비
+	•	돈 관련 부분(wallet/referral)은 원장 구조
+	•	Scraper/Forecast/Review는 마이크로서비스로 천천히 쪼개기
+
+이 방향으로 가면 MAU 10만 → 100만까지도 코드 구조가 버텨줄 거야.
+
+원하면 다음 턴에
+👉 services/api + services/pricing + web_app 구조를 실제 코드 트리 + 예시 파일 내용으로 “이대로 만들어라” 수준까지 쭉 써줄게.
+
+좋아, 그럼 지금부터는 **“이대로 코드 쓰면 바로 정식 개발 들어갈 수 있는 구조”**로
+monorepo → services/api → services/pricing → web_app 를 한 번에 설계해볼게.
+
+아래는 전부 TypeScript + React + Firebase Functions(또는 Cloud Run) 기준이고,
+외부 API 의존은 결제/푸시 정도만 두고, 핵심 로직은 전부 자체 엔진으로 가정했어.
+
+⸻
+
+1. Monorepo 전체 구조 (실제 폴더 트리)
+
+pricebuddy/
+  package.json
+  pnpm-workspace.yaml
+  tsconfig.base.json
+
+  libs/
+    core/
+      src/
+        domain/
+          product.ts
+          offer.ts
+          user.ts
+          pricing.ts
+        index.ts
+      package.json
+    infra/
+      src/
+        firebase.ts
+        firestore.ts
+        logger.ts
+      package.json
+
+  services/
+    api/
+      src/
+        index.ts           # Cloud Function entry (Express)
+        routes/
+          search.ts
+          product-detail.ts
+          offers.ts
+        clients/
+          pricing-client.ts
+          scraper-client.ts
+          matcher-client.ts
+        middleware/
+          auth.ts
+          error.ts
+        types/http.ts
+      package.json
+
+    pricing/
+      src/
+        data/
+          tax-rules.ts
+          shipping-rules.ts
+        forex/
+          fetch-rates.ts
+          rates-store.ts
+        pricing-engine.ts
+        index.ts
+      tests/
+        pricing-engine.test.ts
+      package.json
+
+    scraper/               # (지금은 mock, 나중에 Playwright)
+      src/
+        adapters/
+          coupang.ts
+          naver.ts
+          amazon-jp.ts
+        scrape.ts
+        types.ts
+      package.json
+
+  apps/
+    web_app/
+      src/
+        app/
+          router.tsx
+          queryClient.ts
+          providers.tsx
+        features/
+          search/
+            pages/SearchPage.tsx
+            api/useSearch.ts
+            components/SearchFilters.tsx
+          product-detail/
+            pages/ProductDetailPage.tsx
+            api/useProductDetail.ts
+            components/PriceCard.tsx
+            components/PriceHistoryChart.tsx
+          deals/
+            pages/DealsPage.tsx
+          wallet/
+            ...
+        shared/
+          ui/
+            Button.tsx
+            Card.tsx
+            Badge.tsx
+          lib/
+            money.ts
+            datetime.ts
+            http.ts
+          layout/
+            MainLayout.tsx
+      index.html
+      vite.config.ts
+      package.json
+
+이 구조를 기준으로 각 레이어를 자세히 볼게.
+
+⸻
+
+2. libs/core — 도메인 모델 (공통 타입)
+
+libs/core/src/domain/product.ts
+
+export type Marketplace =
+  | "coupang"
+  | "naver"
+  | "amazon_jp"
+  | "amazon_us"
+  | "rakuten"
+  | "mercari"
+  | "yahoo_jp";
+
+export interface Product {
+  id: string; // 내부 SKU
+  title: string;
+  brand?: string;
+  imageUrl?: string;
+  categoryPath: string[];
+  attributes: Record<string, string>;
+}
+
+libs/core/src/domain/offer.ts
+
+import { Marketplace } from "./product";
+
+export interface Offer {
+  id: string;
+  productId: string;
+  marketplace: Marketplace;
+  externalId: string;
+  url: string;
+  basePrice: number;
+  currency: string;   // "KRW" | "USD" | "JPY" ...
+  shippingFee: number;
+  taxFee: number;
+  otherFee: number;
+  totalPriceKrw: number; // pricing 엔진 결과
+  lastFetchedAt: string; // ISO
+}
+
+libs/core/src/domain/pricing.ts
+
+import { Marketplace } from "./product";
+
+export interface PricingInput {
+  marketplace: Marketplace;
+  country: string; // "KR" | "JP" | "US" ...
+  basePrice: number;
+  currency: string;
+  weightKg?: number;
+}
+
+export interface PricingOutput {
+  itemPriceKrw: number;
+  shippingFeeKrw: number;
+  taxFeeKrw: number;
+  totalPriceKrw: number;
+}
+
+index.ts 에서 한 번에 export:
+
+export * from "./domain/product";
+export * from "./domain/offer";
+export * from "./domain/pricing";
+
+→ FE/BE/서비스 전체가 이 타입을 공유하게 해서 나중에 확장해도 타입이 함께 따라오도록.
+
+⸻
+
+3. services/pricing — 환율·관세·배송·총액 계산 엔진
+
+3-1. 규칙 데이터
+
+services/pricing/src/data/tax-rules.ts
+
+import type { Marketplace } from "@pricebuddy/core";
+
+export interface TaxRule {
+  country: string;     // 도착지 국가 코드
+  thresholdKrw: number;
+  rate: number;        // 0.1 = 10%
+}
+
+export const TAX_RULES: TaxRule[] = [
+  { country: "KR", thresholdKrw: 150000, rate: 0.0 },
+  { country: "US", thresholdKrw: 0, rate: 0.07 },
+  { country: "JP", thresholdKrw: 0, rate: 0.1 },
+  // 필요한 나라 계속 추가
+];
+
+services/pricing/src/data/shipping-rules.ts
+
+import type { Marketplace } from "@pricebuddy/core";
+
+export interface ShippingRule {
+  marketplace: Marketplace;
+  baseFee: number;     // KRW
+  perKgFee: number;    // 1kg 당 원화
+}
+
+export const SHIPPING_RULES: ShippingRule[] = [
+  { marketplace: "amazon_jp", baseFee: 7000, perKgFee: 1200 },
+  { marketplace: "coupang",   baseFee: 3000, perKgFee: 800 },
+  { marketplace: "naver",     baseFee: 2500, perKgFee: 700 },
+];
+
+3-2. 환율 스토어 (자체 크롤링/저장)
+
+services/pricing/src/forex/rates-store.ts
+
+// 간단히 메모리 + Firestore/Redis 캐시로 운용 가능
+
+let cachedRates: Record<string, number> = {
+  KRW: 1,
+  USD: 1350,
+  JPY: 9,
+  EUR: 1500,
+};
+
+export function setRates(rates: Record<string, number>) {
+  cachedRates = { ...cachedRates, ...rates };
+}
+
+export function getRates() {
+  return cachedRates;
+}
+
+3-3. 핵심 엔진
+
+services/pricing/src/pricing-engine.ts
+
+import { PricingInput, PricingOutput } from "@pricebuddy/core";
+import { TAX_RULES } from "./data/tax-rules";
+import { SHIPPING_RULES } from "./data/shipping-rules";
+import { getRates } from "./forex/rates-store";
+
+export function computePrice(input: PricingInput): PricingOutput {
+  const rates = getRates();
+  const fx = input.currency === "KRW" ? 1 : (rates[input.currency] ?? 1);
+
+  const itemKrw = input.basePrice * fx;
+
+  const shipRule = SHIPPING_RULES.find(
+    r => r.marketplace === input.marketplace
+  );
+  if (!shipRule) {
+    throw new Error(`No shipping rule for ${input.marketplace}`);
+  }
+
+  const weight = input.weightKg ?? 1;
+  const shipping = shipRule.baseFee + shipRule.perKgFee * weight;
+
+  const taxRule = TAX_RULES.find(r => r.country === input.country);
+  if (!taxRule) {
+    throw new Error(`No tax rule for ${input.country}`);
+  }
+
+  const taxable = Math.max(0, itemKrw + shipping - taxRule.thresholdKrw);
+  const tax = taxable * taxRule.rate;
+
+  return {
+    itemPriceKrw: Math.round(itemKrw),
+    shippingFeeKrw: Math.round(shipping),
+    taxFeeKrw: Math.round(tax),
+    totalPriceKrw: Math.round(itemKrw + shipping + tax),
+  };
+}
+
+3-4. 테스트 예시
+
+services/pricing/tests/pricing-engine.test.ts
+
+import { computePrice } from "../src/pricing-engine";
+import { setRates } from "../src/forex/rates-store";
+
+describe("computePrice", () => {
+  beforeAll(() => {
+    setRates({ USD: 1300 });
+  });
+
+  it("KR, under threshold => no tax", () => {
+    const out = computePrice({
+      marketplace: "amazon_jp",
+      country: "KR",
+      basePrice: 50,   // 50 USD
+      currency: "USD",
+      weightKg: 1,
+    });
+
+    expect(out.taxFeeKrw).toBe(0);
+    expect(out.totalPriceKrw).toBeGreaterThan(0);
+  });
+});
+
+→ 이 엔진을 services/api에서 사용해 FE로 내려보내면 됨.
+
+⸻
+
+4. services/api — BFF / HTTP 인터페이스
+
+Firebase Functions (Express 래핑) 예시로 갈게.
+
+4-1. 엔트리 파일
+
+services/api/src/index.ts
+
+import * as functions from "firebase-functions";
+import * as express from "express";
+import { searchRouter } from "./routes/search";
+import { productDetailRouter } from "./routes/product-detail";
+import { offersRouter } from "./routes/offers";
+import { errorMiddleware } from "./middleware/error";
+
+const app = express();
+
+app.use(express.json());
+
+// 라우팅
+app.use("/search", searchRouter);
+app.use("/products", productDetailRouter);
+app.use("/offers", offersRouter);
+
+// 에러 핸들링
+app.use(errorMiddleware);
+
+export const api = functions
+  .region("asia-northeast3")
+  .https.onRequest(app);
+
+4-2. HTTP 타입
+
+services/api/src/types/http.ts
+
+export interface TypedRequestQuery<T> extends Express.Request {
+  query: T;
+}
+
+export interface TypedRequestBody<T> extends Express.Request {
+  body: T;
+}
+
+
+⸻
+
+4-3. Search API
+
+services/api/src/routes/search.ts
+
+import { Router } from "express";
+import type { TypedRequestQuery } from "../types/http";
+import { scraperClient } from "../clients/scraper-client";
+
+export const searchRouter = Router();
+
+/**
+ * GET /api/search?q=iphone17&region=global
+ */
+searchRouter.get(
+  "/",
+  async (req: TypedRequestQuery<{ q?: string; region?: string }>, res, next) => {
+    try {
+      const q = req.query.q ?? "";
+      const region = req.query.region ?? "KR";
+
+      if (!q) {
+        return res.status(400).json({ error: "Missing query" });
+      }
+
+      const results = await scraperClient.search(q, region);
+      res.json({ query: q, region, results });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+여기서 scraperClient.search 는 내부 services/scraper 를 때리는 클라이언트야
+(초기에는 mock, 나중에는 Cloud Run 서비스로 분리).
+
+⸻
+
+4-4. Product Detail API
+
+services/api/src/routes/product-detail.ts
+
+import { Router } from "express";
+import type { TypedRequestQuery } from "../types/http";
+import { firestore } from "@pricebuddy/infra/firestore";
+import { pricingClient } from "../clients/pricing-client";
+
+export const productDetailRouter = Router();
+
+/**
+ * GET /api/products/:productId
+ */
+productDetailRouter.get(
+  "/:productId",
+  async (req, res, next) => {
+    try {
+      const { productId } = req.params;
+
+      const productSnap = await firestore
+        .collection("products")
+        .doc(productId)
+        .get();
+
+      if (!productSnap.exists) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      const product = productSnap.data();
+
+      // 해당 product의 offers 가져오기
+      const offersSnap = await firestore
+        .collection("offers")
+        .where("productId", "==", productId)
+        .get();
+
+      const offers = offersSnap.docs.map(d => d.data());
+
+      // 가격 엔진 재계산 (나라/선호 통화에 맞춰)
+      const country = "KR"; // TODO: user profile or query
+      const pricedOffers = offers.map(o =>
+        pricingClient.compute({
+          marketplace: o.marketplace,
+          country,
+          basePrice: o.basePrice,
+          currency: o.currency,
+          weightKg: o.weightKg,
+        }, o) // 원 offer merge
+      );
+
+      res.json({ product, offers: pricedOffers });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+services/api/src/clients/pricing-client.ts
+
+import { computePrice } from "@pricebuddy/pricing";
+import type { PricingInput } from "@pricebuddy/core";
+
+export const pricingClient = {
+  compute(input: PricingInput, offer: any) {
+    const priced = computePrice(input);
+    return {
+      ...offer,
+      itemPriceKrw: priced.itemPriceKrw,
+      shippingFeeKrw: priced.shippingFeeKrw,
+      taxFeeKrw: priced.taxFeeKrw,
+      totalPriceKrw: priced.totalPriceKrw,
+    };
+  },
+};
+
+→ 여기서는 별도 네트워크 호출 없이
+pricing 엔진을 그냥 import 해서 쓰는 구조 (의존 최소).
+
+⸻
+
+5. apps/web_app — React UI + React Query
+
+5-1. 공통 infra
+
+apps/web_app/src/app/queryClient.ts
+
+import { QueryClient } from "@tanstack/react-query";
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 1000 * 60,
+    },
+  },
+});
+
+apps/web_app/src/shared/lib/http.ts
+
+export async function httpGet<T>(path: string, params?: Record<string, any>): Promise<T> {
+  const url = new URL(path, import.meta.env.VITE_API_BASE_URL);
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, String(v)));
+  }
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+
+⸻
+
+5-2. Search Feature
+
+apps/web_app/src/features/search/api/useSearch.ts
+
+import { useQuery } from "@tanstack/react-query";
+import { httpGet } from "@/shared/lib/http";
+
+export interface SearchResultItem {
+  productId: string;
+  title: string;
+  imageUrl?: string;
+  minPriceKrw: number;
+  maxPriceKrw: number;
+  priceChangePct?: number;
+}
+
+interface SearchResponse {
+  query: string;
+  region: string;
+  results: SearchResultItem[];
+}
+
+export function useSearch(query: string, region: string) {
+  return useQuery<SearchResponse>({
+    queryKey: ["search", query, region],
+    queryFn: () => httpGet("/search", { q: query, region }),
+    enabled: !!query,
+  });
+}
+
+apps/web_app/src/features/search/pages/SearchPage.tsx
+
+import { useState } from "react";
+import { useSearch } from "../api/useSearch";
+import { MainLayout } from "@/shared/layout/MainLayout";
+import { SearchCard } from "../components/SearchCard";
+
+export function SearchPage() {
+  const [query, setQuery] = useState("iphone17");
+  const [region, setRegion] = useState<"global" | "kr">("global");
+
+  const { data, isLoading, error } = useSearch(query, region);
+
+  return (
+    <MainLayout>
+      {/* 상단 검색바 */}
+      {/* ... */}
+      {isLoading && <div>로딩중…</div>}
+      {error && <div>잠시 후 다시 시도해 주세요.</div>}
+      <div className="grid gap-4 md:grid-cols-4 mt-6">
+        {data?.results.map((item) => (
+          <SearchCard key={item.productId} item={item} />
+        ))}
+      </div>
+    </MainLayout>
+  );
+}
+
+
+⸻
+
+5-3. Product Detail Feature
+
+apps/web_app/src/features/product-detail/api/useProductDetail.ts
+
+import { useQuery } from "@tanstack/react-query";
+import { httpGet } from "@/shared/lib/http";
+
+export interface ProductDetail {
+  product: any;    // 실제 타입은 core Product
+  offers: any[];   // core Offer + priced fields
+  history?: { ts: string; totalPriceKrw: number }[];
+  aiSignal?: { label: "BUY" | "WAIT"; confidence: number; reason: string };
+}
+
+export function useProductDetail(productId: string) {
+  return useQuery<ProductDetail>({
+    queryKey: ["product", productId],
+    queryFn: () => httpGet(`/products/${productId}`),
+    enabled: !!productId,
+  });
+}
+
+apps/web_app/src/features/product-detail/pages/ProductDetailPage.tsx
+
+import { useParams } from "react-router-dom";
+import { useProductDetail } from "../api/useProductDetail";
+import { PriceCard } from "../components/PriceCard";
+import { PriceHistoryChart } from "../components/PriceHistoryChart";
+
+export function ProductDetailPage() {
+  const { productId } = useParams();
+  const { data, isLoading, error } = useProductDetail(productId!);
+
+  if (isLoading) return <div>로딩중…</div>;
+  if (error || !data) return <div>상품 정보를 가져올 수 없습니다.</div>;
+
+  const { product, offers, history, aiSignal } = data;
+
+  return (
+    <div className="flex gap-8 mt-8">
+      {/* 왼쪽 상품 이미지 영역 */}
+      <div className="flex-1 rounded-xl bg-slate-900/60" />
+
+      {/* 오른쪽 정보 영역 */}
+      <div className="flex-1 space-y-4">
+        <h1 className="text-2xl font-semibold">{product.title}</h1>
+        {/* 캐시백/공유/최저가 버튼들 */}
+        {/* AI Signal 카드 */}
+        {aiSignal && (
+          <div className="rounded-xl border border-emerald-500/40 bg-emerald-900/20 p-4">
+            <div className="text-sm text-emerald-300">
+              AI 신호: {aiSignal.label === "BUY" ? "BUY NOW" : "WAIT"}
+            </div>
+            <div className="text-xs text-slate-300 mt-1">
+              Confidence: {Math.round(aiSignal.confidence * 100)}%
+            </div>
+            <div className="text-xs text-slate-400 mt-2">{aiSignal.reason}</div>
+          </div>
+        )}
+
+        {/* Price History & Forecast */}
+        {history && <PriceHistoryChart data={history} />}
+
+        {/* Offers 리스트 */}
+        <div className="space-y-2">
+          {offers.map((offer) => (
+            <PriceCard key={offer.id} offer={offer} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+⸻
+
+6. 이 설계의 포인트 정리
+	1.	도메인 모델(libs/core)을 기준으로 FE/BE/엔진이 다 같은 타입을 쓴다.
+	2.	services/pricing 이 실결제가 계산을 전부 책임지고, 외부 API 없이도
+환율/세금/배송을 자체 룰로 처리할 수 있게 했다.
+	3.	services/api 는 BFF/오케스트레이터 역할만 하고,
+실제 스크래핑/매칭/예측은 별 서비스(지금은 같은 repo, 나중엔 Cloud Run)에게 위임.
+	4.	apps/web_app 은 feature-based 구조 + React Query 로 데이터를 다룬다.
+→ React 컴포넌트는 “데이터 받아서 UI만 그리는 역할”에 집중.
+	5.	외부 의존은 결제/푸시/메일 쪽만 두고,
+Scraper / Pricing / Forecast / Review / Bandit 은 전부 우리가 설계한 엔진으로 구현 가능하게 열어둠.
+
+⸻
+
+필요하면 이 구조 그대로:
+	•	scraper 서비스의 실제 TypeScript 코드 골격(Playwright/cheerio),
+	•	review / forecast Python 마이크로서비스용 FastAPI 스켈레톤,
+	•	혹은 Chrome Extension MV3 구조(tree + manifest + content-script 예제)
+
+까지 한 번에 이어서 짜줄게.
+
+
+좋다, 그럼 아까 설계의 나머지 큰 덩어리들까지 한 번에 이어서 짜볼게:
+	•	services/scraper (Playwright + cheerio, 설정 기반 파서)
+	•	services/review (FastAPI + HF 로컬 모델)
+	•	services/forecast (FastAPI + 시계열 예측)
+	•	apps/extension (Chrome MV3 기본 구조)
+
+아래 코드는 “골격 + 패턴”이야. 그대로 복붙해서 살을 붙이면 바로 실서비스로 키울 수 있는 수준으로 잡을게.
+
+⸻
+
+1. services/scraper — Playwright + cheerio, 설정 기반 파서
+
+1-1. 타입 정의
+
+services/scraper/src/types.ts
+
+import type { Marketplace } from "@pricebuddy/core";
+
+export interface ScrapeRequest {
+  marketplace: Marketplace;
+  url: string;
+}
+
+export interface ScrapeResultRaw {
+  marketplace: Marketplace;
+  url: string;
+  fetchedAt: string;
+  html: string;
+}
+
+export interface ParsedOfferOutput {
+  title: string;
+  price: number;
+  currency: string;
+  imageUrl?: string;
+  shippingFee?: number;
+  attributes: Record<string, string>;
+}
+
+1-2. 셀렉터 설정 (config-driven)
+
+services/scraper/src/config/coupang.ts
+
+export const coupangSelectors = {
+  title: "h2.prod-buy-header__title",
+  price: "#totalPrice",
+  image: ".prod-image__detail img",
+  shippingFee: "#shippingFee",
+};
+
+services/scraper/src/config/naver.ts
+
+export const naverSelectors = {
+  title: "h3._3oDjSv",
+  price: "span._1LY7Dq",
+  image: "img._36Q7c6",
+  shippingFee: "span._2MvzLh",
+};
+
+1-3. Playwright fetcher
+
+services/scraper/src/fetch-page.ts
+
+import { chromium, Browser } from "playwright";
+import type { ScrapeRequest, ScrapeResultRaw } from "./types";
+
+let browser: Browser | null = null;
+
+async function getBrowser() {
+  if (!browser) {
+    browser = await chromium.launch({ headless: true });
+  }
+  return browser;
+}
+
+export async function fetchPage(req: ScrapeRequest): Promise<ScrapeResultRaw> {
+  const browser = await getBrowser();
+  const context = await browser.newContext({
+    userAgent:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
+      "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+  });
+
+  const page = await context.newPage();
+  await page.goto(req.url, { waitUntil: "networkidle", timeout: 45000 });
+
+  // 쿠팡/네이버 등 동적 로딩 고려해 잠깐 대기
+  await page.waitForTimeout(1500);
+
+  const html = await page.content();
+
+  await page.close();
+  await context.close();
+
+  return {
+    marketplace: req.marketplace,
+    url: req.url,
+    fetchedAt: new Date().toISOString(),
+    html,
+  };
+}
+
+실제 운영에서는 브라우저 풀 관리나 IP 로테이션, rate limit 넣어주면 됨.
+
+1-4. 공통 파서 + 마켓별 어댑터
+
+services/scraper/src/parsers/base.ts
+
+import { load } from "cheerio";
+import type { ParsedOfferOutput, ScrapeResultRaw } from "../types";
+
+interface SelectorConfig {
+  title: string;
+  price: string;
+  image?: string;
+  shippingFee?: string;
+}
+
+export function parseWithConfig(
+  raw: ScrapeResultRaw,
+  config: SelectorConfig,
+  currency: string
+): ParsedOfferOutput {
+  const $ = load(raw.html);
+
+  const normalizePrice = (txt: string) =>
+    Number(txt.replace(/[^\d]/g, "")) || 0;
+
+  const title = $(config.title).text().trim();
+  const priceText = $(config.price).text();
+  const imageUrl = config.image ? $(config.image).attr("src") : undefined;
+  const shippingText = config.shippingFee
+    ? $(config.shippingFee).text()
+    : "0";
+
+  return {
+    title,
+    price: normalizePrice(priceText),
+    currency,
+    imageUrl,
+    shippingFee: normalizePrice(shippingText),
+    attributes: {},
+  };
+}
+
+services/scraper/src/parsers/coupang.ts
+
+import type { ScrapeResultRaw, ParsedOfferOutput } from "../types";
+import { parseWithConfig } from "./base";
+import { coupangSelectors } from "../config/coupang";
+
+export function parseCoupang(raw: ScrapeResultRaw): ParsedOfferOutput {
+  return parseWithConfig(raw, coupangSelectors, "KRW");
+}
+
+services/scraper/src/parsers/naver.ts
+
+import type { ScrapeResultRaw, ParsedOfferOutput } from "../types";
+import { parseWithConfig } from "./base";
+import { naverSelectors } from "../config/naver";
+
+export function parseNaver(raw: ScrapeResultRaw): ParsedOfferOutput {
+  return parseWithConfig(raw, naverSelectors, "KRW");
+}
+
+1-5. 메인 엔트리
+
+services/scraper/src/scrape.ts
+
+import type { ScrapeRequest, ParsedOfferOutput } from "./types";
+import { fetchPage } from "./fetch-page";
+import { parseCoupang } from "./parsers/coupang";
+import { parseNaver } from "./parsers/naver";
+
+export async function scrapeOffer(
+  req: ScrapeRequest
+): Promise<ParsedOfferOutput> {
+  const raw = await fetchPage(req);
+
+  switch (req.marketplace) {
+    case "coupang":
+      return parseCoupang(raw);
+    case "naver":
+      return parseNaver(raw);
+    // TODO: amazon_jp, mercari 등 추가
+    default:
+      throw new Error(`Unsupported marketplace: ${req.marketplace}`);
+  }
+}
+
+나중에 이 모듈을 FastAPI/Express HTTP로 감싸 services/api에서 scraperClient.scrape()로 부르면 됨.
+
+⸻
+
+2. services/review — FastAPI + HF 로컬 모델
+
+2-1. 의존성 가정
+	•	Python 3.11
+	•	fastapi, uvicorn, transformers, torch, scikit-learn
+
+2-2. pydantic 모델
+
+services/review/app.py
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import List, Dict
+
+class AnalyzeRequest(BaseModel):
+    product_id: str
+    reviews: List[str]
+    language: str = "ko"
+
+class AnalyzeResponse(BaseModel):
+    product_id: str
+    sentiment_score: float
+    pros: List[str]
+    cons: List[str]
+    risk_factors: List[str]
+
+2-3. 모델 로딩 & 감성 분석
+
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
+import numpy as np
+
+SENTIMENT_MODEL_NAME = "nlptown/bert-base-multilingual-uncased-sentiment"
+
+tok = AutoTokenizer.from_pretrained(SENTIMENT_MODEL_NAME)
+model = AutoModelForSequenceClassification.from_pretrained(SENTIMENT_MODEL_NAME)
+
+def sentiment_score(texts: List[str]) -> float:
+    if not texts:
+        return 0.0
+    scores = []
+    for t in texts:
+        inputs = tok(t[:512], return_tensors="pt", truncation=True)
+        with torch.no_grad():
+            out = model(**inputs)
+            probs = out.logits.softmax(dim=-1).squeeze().cpu().numpy()
+        # 모델은 1~5 별점이라 가정 -> -1~1로 정규화
+        stars = (probs * np.arange(1,6)).sum()
+        norm = (stars - 3) / 2  # 1→-1, 3→0, 5→+1
+        scores.append(norm)
+    return float(np.mean(scores))
+
+2-4. 키워드 추출 (간단 TF-IDF)
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+def extract_keywords(texts: List[str], top_k: int = 10) -> List[str]:
+    if not texts:
+        return []
+    vec = TfidfVectorizer(max_features=2000, ngram_range=(1,2))
+    X = vec.fit_transform(texts)
+    scores = np.asarray(X.sum(axis=0)).ravel()
+    idxs = scores.argsort()[::-1][:top_k]
+    vocab = np.array(vec.get_feature_names_out())
+    return vocab[idxs].tolist()
+
+2-5. pros/cons/risk 분류 (룰 기반)
+
+POSITIVE_HINTS = ["좋", "만족", "짱", "굿", "추천"]
+NEGATIVE_HINTS = ["별로", "불만", "실망", "후회", "나쁘", "문제"]
+RISK_HINTS     = ["불량", "고장", "환불", "반품", "위험"]
+
+def split_pros_cons(texts: List[str]) -> Dict[str, List[str]]:
+    pros, cons, risk = [], [], []
+    for t in texts:
+        lowered = t.lower()
+        if any(h in lowered for h in RISK_HINTS):
+            risk.append(t)
+        elif any(h in lowered for h in NEGATIVE_HINTS):
+            cons.append(t)
+        elif any(h in lowered for h in POSITIVE_HINTS):
+            pros.append(t)
+    return {"pros": pros, "cons": cons, "risk": risk}
+
+2-6. FastAPI 엔드포인트
+
+app = FastAPI()
+
+@app.post("/analyze", response_model=AnalyzeResponse)
+def analyze(req: AnalyzeRequest):
+    s_score = sentiment_score(req.reviews)
+    split = split_pros_cons(req.reviews)
+
+    # 대표 키워드
+    keywords = extract_keywords(req.reviews, top_k=20)
+
+    def summarize_list(items: List[str], max_items: int = 3) -> List[str]:
+        return items[:max_items]
+
+    return AnalyzeResponse(
+        product_id=req.product_id,
+        sentiment_score=s_score,
+        pros=summarize_list(split["pros"]),
+        cons=summarize_list(split["cons"]),
+        risk_factors=summarize_list(split["risk"]),
+    )
+
+이후 services/api에서 reviewClient.analyze(reviews) 형태로 호출해서
+Product Detail 페이지 AI Review Summary에 붙이면 됨.
+
+⸻
+
+3. services/forecast — FastAPI + 시계열 가격 예측
+
+단순 ARIMA 예시 (나중에 Prophet/NeuralProphet로 교체 가능).
+
+3-1. 모델 및 엔드포인트
+
+services/forecast/app.py
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import List, Dict
+import pandas as pd
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+class HistoryPoint(BaseModel):
+    ts: str   # ISO
+    price_krw: float
+
+class ForecastRequest(BaseModel):
+    product_id: str
+    history: List[HistoryPoint]
+    steps: int = 14
+
+class ForecastResponse(BaseModel):
+    product_id: str
+    horizon_days: int
+    forecast: Dict[str, float]  # ts -> price_krw
+
+app = FastAPI()
+
+def build_series(history: List[HistoryPoint]) -> pd.Series:
+    if not history:
+        raise ValueError("History is empty")
+    df = pd.DataFrame([{"ts": h.ts, "price": h.price_krw} for h in history])
+    df["ts"] = pd.to_datetime(df["ts"])
+    df = df.sort_values("ts")
+    s = df.set_index("ts")["price"]
+    return s
+
+@app.post("/forecast", response_model=ForecastResponse)
+def forecast(req: ForecastRequest):
+    s = build_series(req.history)
+
+    model = SARIMAX(s, order=(1,1,1), seasonal_order=(1,1,1,7))
+    res = model.fit(disp=False)
+
+    pred = res.get_forecast(steps=req.steps)
+    mean = pred.predicted_mean
+    out = {ts.isoformat(): float(value) for ts, value in mean.items()}
+
+    return ForecastResponse(
+        product_id=req.product_id,
+        horizon_days=req.steps,
+        forecast=out,
+    )
+
+Product Detail API에서 history를 가져와 이 서비스를 호출 →
+결과를 Price History 차트에 “예측선”으로 overlay.
+
+⸻
+
+4. Chrome Extension (MV3) — 기본 구조
+
+4-1. 폴더 트리
+
+apps/extension/
+  public/
+    icon16.png
+    icon48.png
+    icon128.png
+  src/
+    manifest.json
+    background.ts
+    content-script.ts
+    popup/
+      index.html
+      popup.tsx
+  package.json
+  vite.config.ts   # (optional, React로 popup 만들 경우)
+
+4-2. manifest.json (MV3)
+
+apps/extension/src/manifest.json
+
+{
+  "manifest_version": 3,
+  "name": "PriceBuddy",
+  "version": "1.0.0",
+  "description": "Global price comparison & cashback helper.",
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_title": "PriceBuddy"
+  },
+  "permissions": ["scripting", "tabs", "storage"],
+  "host_permissions": [
+    "*://*.coupang.com/*",
+    "*://*.naver.com/*",
+    "*://*.amazon.co.jp/*",
+    "*://*.amazon.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.coupang.com/*",
+        "*://*.naver.com/*",
+        "*://*.amazon.co.jp/*",
+        "*://*.amazon.com/*"
+      ],
+      "js": ["content-script.js"]
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
+
+(빌드시 TS → JS로 번역되게 설정.)
+
+4-3. content-script: 상품정보 추출 후 background로 전송
+
+apps/extension/src/content-script.ts
+
+// 사이트별 DOM에서 대략적인 상품명/가격 url 추출
+function detectProduct() {
+  const url = window.location.href;
+  let title = document.title;
+  // 사이트별 커스터마이징 여지
+  const priceEl =
+    document.querySelector("#totalPrice, .product-price, .a-offscreen");
+  const priceText = priceEl?.textContent ?? "";
+  return { url, title, priceText };
+}
+
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === "PING") {
+    sendResponse({ ok: true });
+  }
+});
+
+const product = detectProduct();
+
+chrome.runtime.sendMessage({ type: "PRODUCT_DETECTED", payload: product });
+
+4-4. background: PriceBuddy API 호출 후 badge/notification
+
+apps/extension/src/background.ts
+
+interface ProductDetectedMessage {
+  type: "PRODUCT_DETECTED";
+  payload: { url: string; title: string; priceText: string };
+}
+
+chrome.runtime.onMessage.addListener(
+  (msg: ProductDetectedMessage, sender, _sendResponse) => {
+    if (msg.type !== "PRODUCT_DETECTED") return;
+
+    const { url, title } = msg.payload;
+
+    // PriceBuddy API 호출: /ext/inspect?url=...
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/ext/inspect?url=${encodeURIComponent(url)}`)
+      .then(r => r.json())
+      .then(data => {
+        const bestPrice = data.bestPriceKrw;
+        const savingPct = data.savingPct;
+
+        if (sender.tab?.id != null) {
+          chrome.action.setBadgeText({
+            tabId: sender.tab.id,
+            text: `${Math.round(savingPct)}%`,
+          });
+        }
+
+        chrome.notifications.create({
+          type: "basic",
+          iconUrl: "icon48.png",
+          title: "PriceBuddy 딜 발견",
+          message: `${title}\n최저가: ${bestPrice.toLocaleString()}원 · ${Math.round(
+            savingPct
+          )}% 절약 가능`,
+        });
+      })
+      .catch((err) => {
+        console.error("PriceBuddy ext inspect error", err);
+      });
+  }
+);
+
+4-5. popup React (선택)
+
+apps/extension/src/popup/popup.tsx
+
+import React from "react";
+import ReactDOM from "react-dom/client";
+
+function Popup() {
+  const [status, setStatus] = React.useState("Loading…");
+  React.useEffect(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tab = tabs[0];
+      if (!tab?.id) return;
+      chrome.tabs.sendMessage(tab.id, { type: "PING" }, (resp) => {
+        if (chrome.runtime.lastError) {
+          setStatus("이 페이지에서는 PriceBuddy가 동작하지 않습니다.");
+        } else if (resp?.ok) {
+          setStatus("이 페이지에서 PriceBuddy가 가격을 모니터링 중입니다.");
+        }
+      });
+    });
+  }, []);
+  return (
+    <div className="p-4 w-72 text-sm text-slate-100 bg-slate-950">
+      <h1 className="text-base font-semibold mb-2">PriceBuddy</h1>
+      <p>{status}</p>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+  <Popup />
+);
+
+
+⸻
+
+여기까지가:
+	•	Scraper 엔진 골격
+	•	Review/Forecast AI 서비스 골격
+	•	브라우저 확장 기본 구조
+
+까지 한 번에 연결된 상태야.
+
+이제 다음 단계에서 할 수 있는 건:
+	1.	services/api에 ext/inspect 엔드포인트 추가해서 확장이 쓰게 만들기
+	2.	리뷰/예측 서비스를 실제 Docker / Cloud Run으로 올리는 배포 스크립트 작성
+	3.	PriceBuddy MasterBrief에 지금 설계·코드 구조를 “정식 개발 설계 v2”로 통합 기록
+
+원하면 바로 1번(Ext용 API + 응답 구조) 이랑 2번(Cloud Run 배포 스크립트 outline) 까지 이어서 짜줄게.
+
+좋아, 그럼 지금까지 만든 설계를 실제로 이어 붙이는 마지막 퍼즐들까지 한 번에 짜볼게.
+
+이번에 할 것:
+	1.	services/api에 브라우저 확장용 /ext/inspect 엔드포인트 추가
+	2.	Review / Forecast / Scraper 마이크로서비스를 Cloud Run에 올리는 배포 설계 + 코드 골격
+
+⸻
+
+1. services/api – /ext/inspect 엔드포인트
+
+1-1. 마켓플레이스 자동 감지 유틸
+
+services/api/src/lib/marketplace.ts
+
+import { Marketplace } from "@pricebuddy/core";
+
+export function detectMarketplaceFromUrl(url: string): Marketplace | null {
+  const host = new URL(url).hostname;
+
+  if (host.includes("coupang")) return "coupang";
+  if (host.includes("shopping.naver") || host.includes("smartstore.naver"))
+    return "naver";
+  if (host.includes("amazon.co.jp")) return "amazon_jp";
+  if (host.includes("amazon.com")) return "amazon_us";
+  if (host.includes("mercari")) return "mercari";
+  if (host.includes("yahoo.co.jp")) return "yahoo_jp";
+  if (host.includes("rakuten")) return "rakuten";
+
+  return null;
+}
+
+1-2. Scraper / Matcher / Pricing 클라이언트 (간단 버전)
+
+services/api/src/clients/scraper-client.ts
+
+import type { Marketplace } from "@pricebuddy/core";
+import type { ParsedOfferOutput } from "@pricebuddy/scraper-types"; // 또는 직접 타이핑
+
+const SCRAPER_BASE_URL = process.env.SCRAPER_BASE_URL ?? "http://scraper:8080";
+
+export const scraperClient = {
+  async scrapeSingle(marketplace: Marketplace, url: string): Promise<ParsedOfferOutput> {
+    const res = await fetch(`${SCRAPER_BASE_URL}/scrape`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ marketplace, url }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Scraper error: ${res.status}`);
+    }
+
+    return res.json();
+  },
+};
+
+(초기에는 Cloud Functions 안에서 scrapeOffer()를 직접 import 해서 써도 됨. 여기선 Cloud Run 마이크로서비스 가정.)
+
+Matcher는 “이 URL의 상품을 내부 Product로 연결하는 단계”이지만,
+**확장 /ext/inspect**에서는 “그 상품 하나의 가격 비교만 해도 되니” 간단하게 간다:
+	•	1차 버전: 해당 URL만 스크랩 + 내부 DB에서 같은 ProductId의 다른 Offer들 불러오기
+(이미 상품이 있으면 bestPrice 비교)
+
+1-3. /ext/inspect 라우터
+
+services/api/src/routes/ext.ts
+
+import { Router } from "express";
+import type { TypedRequestQuery } from "../types/http";
+import { detectMarketplaceFromUrl } from "../lib/marketplace";
+import { scraperClient } from "../clients/scraper-client";
+import { firestore } from "@pricebuddy/infra/firestore";
+import { pricingClient } from "../clients/pricing-client";
+import type { Marketplace } from "@pricebuddy/core";
+
+export const extRouter = Router();
+
+/**
+ * GET /ext/inspect?url=...
+ * Chrome 확장에서 호출하는 엔드포인트
+ */
+extRouter.get(
+  "/inspect",
+  async (req: TypedRequestQuery<{ url?: string; country?: string }>, res, next) => {
+    try {
+      const url = req.query.url;
+      const country = req.query.country ?? "KR";
+
+      if (!url) {
+        return res.status(400).json({ error: "Missing url" });
+      }
+
+      const marketplace = detectMarketplaceFromUrl(url);
+      if (!marketplace) {
+        return res.status(400).json({ error: "Unsupported marketplace" });
+      }
+
+      // 1) 해당 URL 스크랩 (현재 페이지의 가격)
+      const parsed = await scraperClient.scrapeSingle(marketplace, url);
+
+      // 2) DB에서 동일/유사 상품 찾기 (단순 버전: title 기반)
+      const productSnap = await firestore
+        .collection("products")
+        .where("normalizedTitle", "==", normalizeTitle(parsed.title))
+        .limit(1)
+        .get();
+
+      let productDoc = productSnap.docs[0];
+      if (!productDoc) {
+        // 아직 없는 상품이면 신규 product 생성 (선택 사항)
+        productDoc = await firestore.collection("products").doc();
+        await productDoc.set({
+          id: productDoc.id,
+          title: parsed.title,
+          normalizedTitle: normalizeTitle(parsed.title),
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      const productId = productDoc.id;
+
+      // 3) 해당 Product의 Offers 로드
+      const offersSnap = await firestore
+        .collection("offers")
+        .where("productId", "==", productId)
+        .get();
+
+      const offersRaw = offersSnap.docs.map((d) => d.data());
+
+      // 현재 URL의 Offer도 후보에 넣기
+      const currentOfferBase = {
+        productId,
+        marketplace,
+        externalId: url,
+        url,
+        basePrice: parsed.price,
+        currency: parsed.currency,
+        weightKg: 1,
+      };
+
+      const allOffers = [
+        currentOfferBase,
+        ...offersRaw.map((o) => ({
+          productId: o.productId,
+          marketplace: o.marketplace as Marketplace,
+          externalId: o.externalId,
+          url: o.url,
+          basePrice: o.basePrice,
+          currency: o.currency,
+          weightKg: o.weightKg ?? 1,
+        })),
+      ];
+
+      // 4) Pricing 엔진으로 실결제가 계산
+      const pricedOffers = allOffers.map((o) =>
+        pricingClient.compute(
+          {
+            marketplace: o.marketplace,
+            country,
+            basePrice: o.basePrice,
+            currency: o.currency,
+            weightKg: o.weightKg,
+          },
+          o
+        )
+      );
+
+      // 5) 최저가 / 상대 절약율 계산
+      const sorted = pricedOffers.sort(
+        (a, b) => a.totalPriceKrw - b.totalPriceKrw
+      );
+
+      const best = sorted[0];
+      const current = pricedOffers.find((o) => o.url === url) ?? best;
+
+      const saving = current.totalPriceKrw - best.totalPriceKrw;
+      const savingPct =
+        current.totalPriceKrw > 0
+          ? saving / current.totalPriceKrw
+          : 0;
+
+      res.json({
+        product: {
+          id: productId,
+          title: parsed.title,
+        },
+        currentOffer: current,
+        bestOffer: best,
+        offers: sorted,
+        bestPriceKrw: best.totalPriceKrw,
+        baselinePriceKrw: current.totalPriceKrw,
+        savingKrw: saving,
+        savingPct: savingPct, // 0.18 → 18% 절약
+      });
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+// 간단한 타이틀 정규화 유틸
+function normalizeTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[^a-z0-9가-힣 ]/g, "")
+    .trim();
+}
+
+1-4. index.ts에 라우터 연결
+
+services/api/src/index.ts (일부분)
+
+import { extRouter } from "./routes/ext";
+
+app.use("/ext", extRouter);
+
+이제 확장에서:
+
+fetch(`${API_BASE_URL}/ext/inspect?url=${encodeURIComponent(url)}`)
+  .then(r => r.json())
+  .then(data => {
+    // bestPriceKrw / savingPct 활용
+  });
+
+이 흐름이 완성된다.
+
+⸻
+
+2. Cloud Run 배포 설계 – Review / Forecast / Scraper
+
+공통 가정
+	•	각 서비스는 독립 Docker 컨테이너
+	•	gcloud run deploy 로 배포
+	•	API 서비스에서 환경변수로 URL 주입 (예: REVIEW_BASE_URL)
+
+⸻
+
+2-1. Review 서비스 (FastAPI)
+
+2-1-1. 디렉터리 구조
+
+services/review/
+  app.py          # 아까 만든 FastAPI 코드
+  requirements.txt
+  Dockerfile
+
+requirements.txt
+
+fastapi
+uvicorn[standard]
+transformers
+torch
+scikit-learn
+numpy
+pandas
+
+Dockerfile
+
+FROM python:3.11-slim
+
+# 시스템 의존성 (예: BLAS, GCC 등 필요 시 추가)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app.py .
+
+ENV PORT=8080
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
+
+2-1-2. 빌드 & 배포 커맨드 예시
+
+# 프로젝트 ID / 리전은 실제 값으로 변경
+export PROJECT_ID=my-gcp-project
+export REGION=asia-northeast3
+
+cd services/review
+
+gcloud builds submit --tag gcr.io/$PROJECT_ID/pricebuddy-review:1
+
+gcloud run deploy pricebuddy-review \
+  --image gcr.io/$PROJECT_ID/pricebuddy-review:1 \
+  --platform managed \
+  --region $REGION \
+  --allow-unauthenticated \
+  --memory 2Gi \
+  --cpu 2
+
+배포 후 나온 URL 예:
+https://pricebuddy-review-xxxxx-asia-northeast3.run.app
+
+이걸 services/api의 환경변수 REVIEW_BASE_URL에 세팅.
+
+⸻
+
+2-2. Forecast 서비스 (FastAPI + statsmodels)
+
+2-2-1. 구조
+
+services/forecast/
+  app.py
+  requirements.txt
+  Dockerfile
+
+requirements.txt
+
+fastapi
+uvicorn[standard]
+pandas
+statsmodels
+numpy
+
+Dockerfile
+
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app.py .
+
+ENV PORT=8080
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
+
+2-2-2. 빌드 & 배포
+
+cd services/forecast
+
+gcloud builds submit --tag gcr.io/$PROJECT_ID/pricebuddy-forecast:1
+
+gcloud run deploy pricebuddy-forecast \
+  --image gcr.io/$PROJECT_ID/pricebuddy-forecast:1 \
+  --platform managed \
+  --region $REGION \
+  --allow-unauthenticated \
+  --memory 1Gi \
+  --cpu 1
+
+API 서비스에서 FORECAST_BASE_URL 로 사용.
+
+⸻
+
+2-3. Scraper 서비스 (Node + Playwright)
+
+Playwright는 이미지가 조금 무거우니까, Node base에 Playwright 설치.
+
+2-3-1. 구조
+
+services/scraper/
+  src/
+    index.ts      # Fastify/Express 핸들러
+    fetch-page.ts
+    parsers/...
+  package.json
+  tsconfig.json
+  Dockerfile
+
+src/index.ts
+
+import fastify from "fastify";
+import { scrapeOffer } from "./scrape";
+
+const app = fastify({ logger: true });
+
+app.post("/scrape", async (req, res) => {
+  const body = req.body as { marketplace: string; url: string };
+  const out = await scrapeOffer({
+    marketplace: body.marketplace as any,
+    url: body.url,
+  });
+  return out;
+});
+
+const port = Number(process.env.PORT ?? 8080);
+
+app.listen({ port, host: "0.0.0.0" }).catch((err) => {
+  app.log.error(err);
+  process.exit(1);
+});
+
+package.json (중요 부분만)
+
+{
+  "name": "pricebuddy-scraper",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "fastify": "^4.28.0",
+    "playwright": "^1.48.0",
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
+
+Dockerfile
+
+FROM mcr.microsoft.com/playwright:v1.48.0-jammy
+
+WORKDIR /app
+
+COPY package.json package-lock.json* pnpm-lock.yaml* ./
+RUN npm install --omit=dev
+
+COPY tsconfig.json .
+COPY src ./src
+
+RUN npx tsc -p tsconfig.json
+
+ENV PORT=8080
+
+CMD ["node", "dist/index.js"]
+
+여기서는 Microsoft Playwright 공식 이미지를 사용해서
+Chromium/Firefox/WebKit 의존성을 미리 해결.
+
+2-3-2. 빌드 & 배포
+
+cd services/scraper
+
+gcloud builds submit --tag gcr.io/$PROJECT_ID/pricebuddy-scraper:1
+
+gcloud run deploy pricebuddy-scraper \
+  --image gcr.io/$PROJECT_ID/pricebuddy-scraper:1 \
+  --platform managed \
+  --region $REGION \
+  --allow-unauthenticated \
+  --memory 2Gi \
+  --cpu 2
+
+API 서비스의 SCRAPER_BASE_URL 로 사용.
+
+⸻
+
+3. API 서비스에서 외부 서비스 URL 연결
+
+services/api/.env (혹은 Firebase Functions 환경변수)
+
+SCRAPER_BASE_URL=https://pricebuddy-scraper-xxxxx-asia-northeast3.run.app
+REVIEW_BASE_URL=https://pricebuddy-review-xxxxx-asia-northeast3.run.app
+FORECAST_BASE_URL=https://pricebuddy-forecast-xxxxx-asia-northeast3.run.app
+
+services/api/src/clients/review-client.ts
+
+const REVIEW_BASE_URL = process.env.REVIEW_BASE_URL!;
+
+export const reviewClient = {
+  async analyze(productId: string, reviews: string[]) {
+    const res = await fetch(`${REVIEW_BASE_URL}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id: productId, reviews }),
+    });
+    if (!res.ok) throw new Error(`Review service error: ${res.status}`);
+    return res.json();
+  },
+};
+
+services/api/src/clients/forecast-client.ts
+
+const FORECAST_BASE_URL = process.env.FORECAST_BASE_URL!;
+
+export const forecastClient = {
+  async forecast(productId: string, history: { ts: string; price_krw: number }[]) {
+    const res = await fetch(`${FORECAST_BASE_URL}/forecast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id: productId, history }),
+    });
+    if (!res.ok) throw new Error(`Forecast service error: ${res.status}`);
+    return res.json();
+  },
+};
+
+Product Detail API에서:
+
+const reviewSummary = await reviewClient.analyze(productId, reviewTexts);
+const forecast = await forecastClient.forecast(productId, historyPoints);
+
+이렇게 연결하면 완전한 분산 구조가 된다.
+
+⸻
+
+4. 마무리 정리
+
+지금까지 이어서 만든 것들로 PriceBuddy는:
+	•	FE
+	•	feature-based React 구조 + React Query
+	•	API
+	•	BFF 역할 + Scraper/Pricing/Review/Forecast 오케스트레이션
+	•	엔진
+	•	Scraper: Playwright + cheerio (Cloud Run)
+	•	Pricing: 자체 룰 엔진 (Firestore 연계)
+	•	Review: 로컬 HF 모델 (FastAPI + Cloud Run)
+	•	Forecast: 시계열 모델 서비스 (FastAPI + Cloud Run)
+	•	확장
+	•	MV3 Extension → /ext/inspect 로 현재 페이지 딜 인사이트 제공
+
+까지 한 세트로 완성된 상태야.
+
+다음에 원하면:
+	•	이 전체 설계를 PriceBuddy MasterBrief – “정식 개발 설계 v4.x” 형태로
+마크다운 문서로 한 방에 정리해서 줄 수도 있고,
+	•	또는 어떤 파트부터 실제 코드 구현을 시작할지(예: Pricing 엔진부터, Scraper부터)
+단계별 To-do 리스트를 만들어줄 수도 있어.
+

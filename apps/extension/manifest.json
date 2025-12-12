@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "PriceBuddy",
+  "version": "1.0.0",
+  "description": "Global price comparison & cashback helper",
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_title": "PriceBuddy"
+  },
+  "permissions": ["scripting", "tabs", "storage"],
+  "host_permissions": [
+    "*://*.coupang.com/*",
+    "*://*.naver.com/*",
+    "*://*.amazon.co.jp/*",
+    "*://*.amazon.com/*",
+    "*://*.amazon.co.uk/*",
+    "*://*.amazon.de/*",
+    "*://*.amazon.fr/*",
+    "*://*.rakuten.co.jp/*",
+    "*://*.mercari.com/*",
+    "*://*.yahoo.co.jp/*",
+    "*://*.ebay.com/*",
+    "*://*.aliexpress.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.coupang.com/*",
+        "*://*.naver.com/*",
+        "*://*.amazon.co.jp/*",
+        "*://*.amazon.com/*",
+        "*://*.amazon.co.uk/*",
+        "*://*.rakuten.co.jp/*",
+        "*://*.mercari.com/*",
+        "*://*.yahoo.co.jp/*",
+        "*://*.ebay.com/*",
+        "*://*.aliexpress.com/*"
+      ],
+      "js": ["content-script.js"]
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
+

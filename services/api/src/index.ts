@@ -1,0 +1,48 @@
+import * as functions from "firebase-functions";
+import express from "express";
+import { searchRouter } from "./routes/search";
+import { productDetailRouter } from "./routes/product-detail";
+import { extRouter } from "./routes/ext";
+import { dealsRouter } from "./routes/deals";
+import { walletRouter } from "./routes/wallet";
+import { alertsRouter } from "./routes/alerts";
+import { purchasesRouter } from "./routes/purchases";
+import { cashbackRouter } from "./routes/cashback";
+import { referralRouter } from "./routes/referral";
+import { recommendationsRouter } from "./routes/recommendations";
+import { paymentRouter } from "./routes/payment";
+import { priceTrackingRouter } from "./routes/price-tracking";
+import { errorMiddleware } from "./middleware/error";
+import { updateProductPrices } from "./routes/price-scheduler";
+
+const app = express();
+
+app.use(express.json());
+
+// 라우팅
+app.use("/search", searchRouter);
+app.use("/products", productDetailRouter);
+app.use("/ext", extRouter);
+app.use("/deals", dealsRouter);
+app.use("/wallet", walletRouter);
+app.use("/alerts", alertsRouter);
+app.use("/purchases", purchasesRouter);
+app.use("/cashback", cashbackRouter);
+app.use("/referral", referralRouter);
+app.use("/recommendations", recommendationsRouter);
+app.use("/payment", paymentRouter);
+app.use("/price-tracking", priceTrackingRouter);
+
+// 에러 핸들링
+app.use(errorMiddleware);
+
+export const api = functions
+  .region("asia-northeast3")
+  .https.onRequest(app);
+
+// 스케줄러 함수들 export
+export { updateProductPrices } from "./routes/price-scheduler";
+
+// Notifications 서비스의 스케줄러는 별도로 export
+// services/notifications/src/index.ts에서 직접 배포
+

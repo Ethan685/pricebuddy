@@ -1,0 +1,124 @@
+import { Link } from "react-router-dom";
+import { Button } from "@/shared/ui/Button";
+import { Card } from "@/shared/ui/Card";
+import { formatKrw } from "@/shared/lib/money";
+import { useLanguage } from "@/shared/context/LanguageContext";
+
+export function LandingPage() {
+  const { t } = useLanguage();
+  return (
+    <div className="space-y-16">
+      {/* Hero Section */}
+      <section className="text-center py-16">
+        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
+          {t("landing.hero.title")}
+        </h1>
+        <p className="text-xl text-slate-400 mb-8 max-w-2xl mx-auto">
+          {t("landing.hero.subtitle")}
+        </p>
+        <div className="flex gap-4 justify-center">
+          <Link to="/search">
+            <Button variant="primary" className="text-lg px-8 py-3">
+              {t("landing.hero.startButton")}
+            </Button>
+          </Link>
+          <Link to="/deals">
+            <Button variant="secondary" className="text-lg px-8 py-3">
+              {t("landing.hero.dealsButton")}
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="grid grid-cols-3 gap-8 text-center">
+        <div>
+          <div className="text-4xl font-bold text-emerald-400 mb-2">10만+</div>
+          <div className="text-slate-400">{t("landing.stats.products")}</div>
+        </div>
+        <div>
+          <div className="text-4xl font-bold text-emerald-400 mb-2">50만+</div>
+          <div className="text-slate-400">{t("landing.stats.users")}</div>
+        </div>
+        <div>
+          <div className="text-4xl font-bold text-emerald-400 mb-2">₩1억+</div>
+          <div className="text-slate-400">{t("landing.stats.savings")}</div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section>
+        <h2 className="text-3xl font-bold text-center mb-12">{t("landing.features.title")}</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          <Card>
+            <div className="text-4xl mb-4">🔍</div>
+            <h3 className="text-xl font-semibold mb-2">{t("landing.features.comparison.title")}</h3>
+            <p className="text-slate-400">
+              {t("landing.features.comparison.desc")}
+            </p>
+          </Card>
+          <Card>
+            <div className="text-4xl mb-4">📊</div>
+            <h3 className="text-xl font-semibold mb-2">{t("landing.features.ai.title")}</h3>
+            <p className="text-slate-400">
+              {t("landing.features.ai.desc")}
+            </p>
+          </Card>
+          <Card>
+            <div className="text-4xl mb-4">💰</div>
+            <h3 className="text-xl font-semibold mb-2">{t("landing.features.cashback.title")}</h3>
+            <p className="text-slate-400">
+              {t("landing.features.cashback.desc")}
+            </p>
+          </Card>
+        </div>
+      </section>
+
+      {/* Today's Deals Preview */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-3xl font-bold">{t("landing.deals.title")}</h2>
+          <Link to="/deals">
+            <Button variant="secondary">{t("landing.deals.viewAll")}</Button>
+          </Link>
+        </div>
+        <div className="grid md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="hover:border-emerald-500/40 transition-colors">
+              <div className="bg-slate-800 h-32 rounded-lg mb-3 flex items-center justify-center">
+                <span className="text-slate-500">상품 이미지</span>
+              </div>
+              <h3 className="font-semibold mb-2 line-clamp-2">
+                Apple iPhone 17 Pro 256GB
+              </h3>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-emerald-400 font-bold">
+                  {formatKrw(1590000)}
+                </span>
+                <span className="text-slate-500 line-through text-sm">
+                  {formatKrw(1890000)}
+                </span>
+                <span className="text-red-400 text-sm font-semibold">-16%</span>
+              </div>
+              <div className="text-xs text-slate-400">쿠팡 · 무료배송</div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="text-center py-16 bg-slate-900/60 rounded-xl">
+        <h2 className="text-3xl font-bold mb-4">{t("landing.cta.title")}</h2>
+        <p className="text-slate-400 mb-8">
+          {t("landing.cta.subtitle")}
+        </p>
+        <Link to="/search">
+          <Button variant="primary" className="text-lg px-8 py-3">
+            {t("landing.cta.button")}
+          </Button>
+        </Link>
+      </section>
+    </div>
+  );
+}
+

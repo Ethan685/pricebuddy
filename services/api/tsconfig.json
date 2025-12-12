@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./lib",
+    "rootDir": "../..",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "baseUrl": "../..",
+    "paths": {
+      "@pricebuddy/core": ["./libs/core/src"],
+      "@pricebuddy/infra": ["./libs/infra/src"],
+      "@pricebuddy/pricing": ["./services/pricing/src"]
+    },
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src/**/*", "../../libs/**/*", "../../services/pricing/src/**/*"]
+}
+

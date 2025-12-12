@@ -1,0 +1,24 @@
+{
+  "name": "pricebuddy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Global price comparison & cashback platform",
+  "workspaces": [
+    "libs/*",
+    "services/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r exec rm -rf dist build lib node_modules/.cache"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
