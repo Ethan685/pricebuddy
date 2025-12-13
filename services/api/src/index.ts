@@ -12,6 +12,10 @@ import { referralRouter } from "./routes/referral";
 import { recommendationsRouter } from "./routes/recommendations";
 import { paymentRouter } from "./routes/payment";
 import { priceTrackingRouter } from "./routes/price-tracking";
+import { monitoringRouter } from "./routes/monitoring";
+import { autoMarketingRouter } from "./routes/auto-marketing";
+import { autoSupportRouter } from "./routes/auto-support";
+import { autoAffiliateRouter } from "./routes/auto-affiliate";
 import { errorMiddleware } from "./middleware/error";
 import { updateProductPrices } from "./routes/price-scheduler";
 
@@ -32,6 +36,10 @@ app.use("/referral", referralRouter);
 app.use("/recommendations", recommendationsRouter);
 app.use("/payment", paymentRouter);
 app.use("/price-tracking", priceTrackingRouter);
+app.use("/monitoring", monitoringRouter);
+app.use("/auto-marketing", autoMarketingRouter);
+app.use("/auto-support", autoSupportRouter);
+app.use("/auto-affiliate", autoAffiliateRouter);
 
 // 에러 핸들링
 app.use(errorMiddleware);
@@ -42,6 +50,7 @@ export const api = functions
 
 // 스케줄러 함수들 export
 export { updateProductPrices } from "./routes/price-scheduler";
+export { autoUpdateScrapers } from "./routes/scraper-auto-update";
 
 // Notifications 서비스의 스케줄러는 별도로 export
 // services/notifications/src/index.ts에서 직접 배포

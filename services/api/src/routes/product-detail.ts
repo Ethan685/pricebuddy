@@ -34,12 +34,13 @@ productDetailRouter.get(
       const offers = offersSnap.docs.map((d: any) => d.data());
 
       // 가격 엔진 재계산 (나라/선호 통화에 맞춰)
-      const country = "KR"; // TODO: user profile or query
+      // 쿼리 파라미터에서 country 가져오기, 없으면 기본값 KR
+      const country = (req.query.country as string) || "KR";
       const pricedOffers = offers.map((o: any) =>
         pricingClient.compute(
           {
             marketplace: o.marketplace,
-            country,
+            country: o.country || country, // offer에 저장된 country 우선, 없으면 쿼리 파라미터 사용
             basePrice: o.basePrice,
             currency: o.currency,
             weightKg: o.weightKg || 1,

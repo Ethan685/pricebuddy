@@ -11,11 +11,14 @@ export const priceTrackingRouter = Router();
  */
 priceTrackingRouter.post("/track", async (req, res, next) => {
   try {
-    const { url, marketplace, productId } = req.body;
+    const { url, marketplace, productId, country } = req.body;
 
     if (!url || !marketplace) {
       return res.status(400).json({ error: "Missing url or marketplace" });
     }
+
+    // 사용자 국가 (기본값: KR, 쿼리 파라미터 또는 사용자 프로필에서 가져오기)
+    const userCountry = country || "KR";
 
     // 스크래퍼로 현재 가격 가져오기
     const scraped = await scraperClient.scrapeSingle(marketplace, url);
@@ -25,7 +28,7 @@ priceTrackingRouter.post("/track", async (req, res, next) => {
     const priced = await pricingClient.compute(
       {
         marketplace,
-        country: "KR",
+        country: userCountry,
         basePrice,
         currency: scraped.currency,
         weightKg: scraped.weightKg || 1,

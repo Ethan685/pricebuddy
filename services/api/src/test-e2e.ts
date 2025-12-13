@@ -9,7 +9,7 @@ import { strict as assert } from 'node:assert';
 
 import express from 'express';
 import { scrapeOffer } from '@pricebuddy/scraper';
-import { computePrice } from '@pricebuddy/pricing';
+// import { computePrice } from '@pricebuddy/pricing'; // 테스트 파일이므로 주석 처리
 import { findBestMatch } from '@pricebuddy/matcher';
 import { predictPrice } from '@pricebuddy/forecast';
 import { analyzeReviews } from '@pricebuddy/review';

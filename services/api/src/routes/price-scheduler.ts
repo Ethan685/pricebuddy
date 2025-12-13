@@ -60,12 +60,13 @@ export const updateProductPrices = functions
                 offer.url
               );
 
-              // 가격 계산
+              // 가격 계산 (다국가 지원: offer에 저장된 country 사용, 없으면 기본값 KR)
               const basePrice = scraped.price || scraped.basePrice || offer.basePrice || 0;
+              const offerCountry = offer.country || "KR"; // offer에 country 저장되어 있으면 사용
               const priced = await pricingClient.compute(
                 {
                   marketplace: offer.marketplace,
-                  country: "KR",
+                  country: offerCountry,
                   basePrice,
                   currency: scraped.currency || offer.currency,
                   weightKg: scraped.weightKg || offer.weightKg || 1,
@@ -112,6 +113,18 @@ export const updateProductPrices = functions
               });
             } catch (error) {
               logger.error(`Error updating offer ${offerDoc.id}:`, error);
+              
+              // 자동 오류 기록 및 재시도 스케줄링
+              await firestore.collection("scraper_errors").add({
+                marketplace: offer.marketplace,
+                url: offer.url,
+                error: error instanceof Error ? error.message : String(error),
+                timestamp: new Date().toISOString(),
+                retryCount: 0,
+                status: "pending",
+                offerId: offerDoc.id,
+              });
+              
               // 개별 offer 실패해도 계속 진행
             }
           }

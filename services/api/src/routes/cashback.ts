@@ -6,10 +6,73 @@ export const cashbackRouter = Router();
 
 // 제휴 수수료율 (마켓플레이스별)
 const AFFILIATE_RATES: Record<string, number> = {
+  // 한국
   coupang: 0.05, // 5%
   naver: 0.03,    // 3%
+  gmarket: 0.03,  // 3%
+  "11st": 0.03,   // 3%
+  auction: 0.03,  // 3%
+  interpark: 0.03, // 3%
+  tmon: 0.04,     // 4%
+  wemakeprice: 0.04, // 4%
+  // Amazon 계열
   amazon_jp: 0.02, // 2%
-  amazon_us: 0.02,
+  amazon_us: 0.02, // 2%
+  amazon_uk: 0.02, // 2%
+  amazon_ca: 0.02, // 2%
+  amazon_de: 0.02, // 2%
+  amazon_fr: 0.02, // 2%
+  amazon_it: 0.02, // 2%
+  amazon_es: 0.02, // 2%
+  amazon_au: 0.02, // 2%
+  amazon_sg: 0.02, // 2%
+  amazon_mx: 0.02, // 2%
+  amazon_br: 0.02, // 2%
+  // eBay 계열
+  ebay: 0.015, // 1.5%
+  ebay_us: 0.015,
+  ebay_uk: 0.015,
+  ebay_de: 0.015,
+  ebay_fr: 0.015,
+  ebay_it: 0.015,
+  ebay_es: 0.015,
+  ebay_au: 0.015,
+  // 미국 소매업체
+  walmart: 0.01, // 1%
+  target: 0.01, // 1%
+  bestbuy: 0.01, // 1%
+  costco: 0.01, // 1%
+  newegg: 0.015, // 1.5%
+  // 일본
+  rakuten: 0.02, // 2%
+  mercari: 0.015, // 1.5%
+  yahoo_jp: 0.015, // 1.5%
+  // 유럽
+  zalando: 0.02, // 2%
+  mediamarkt: 0.015, // 1.5%
+  saturn: 0.015, // 1.5%
+  otto: 0.015, // 1.5%
+  bol: 0.015, // 1.5%
+  cdiscount: 0.015, // 1.5%
+  fnac: 0.015, // 1.5%
+  asos: 0.02, // 2%
+  // 아시아 태평양
+  lazada: 0.02, // 2%
+  shopee: 0.02, // 2%
+  jd: 0.015, // 1.5%
+  flipkart: 0.015, // 1.5%
+  // 중국
+  aliexpress: 0.03, // 3%
+  taobao: 0.02, // 2%
+  tmall: 0.02, // 2%
+  // 라틴 아메리카
+  mercadolibre: 0.02, // 2%
+  // 기타
+  etsy: 0.02, // 2%
+  wish: 0.02, // 2%
+  wayfair: 0.015, // 1.5%
+  overstock: 0.015, // 1.5%
+  allegro: 0.015, // 1.5%
 };
 
 /**

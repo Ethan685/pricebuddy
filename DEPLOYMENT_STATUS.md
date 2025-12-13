@@ -1,65 +1,105 @@
-# 🎉 배포 진행 상황
+# 배포 상태
 
-## ✅ 완료된 작업
+**프로젝트**: pricebuddy-5a869  
+**배포 일시**: 2024-12-12
 
-1. **Firebase 프로젝트 설정**
-   - 프로젝트 ID: `pricebuddy-5a869`
-   - 프로젝트 선택 완료
+---
 
-2. **Firestore 설정 배포**
-   - ✅ 보안 규칙 배포 완료
-   - ✅ 인덱스 배포 완료
+## ✅ 완료된 배포
 
-3. **코드 빌드**
-   - ✅ TypeScript 컴파일 성공
-   - ✅ 모든 타입 에러 수정 완료
+### 1. Firestore 보안 규칙
+- **상태**: ✅ 배포 완료
+- **파일**: `services/api/firestore.rules`
+- **확인**: https://console.firebase.google.com/project/pricebuddy-5a869/firestore/rules
 
-## ⚠️ 다음 단계 필요
+### 2. Firestore 인덱스
+- **상태**: ✅ 배포 완료
+- **파일**: `services/api/firestore.indexes.json`
+- **확인**: https://console.firebase.google.com/project/pricebuddy-5a869/firestore/indexes
 
-### Firebase Functions 배포를 위한 Blaze 플랜 업그레이드
+---
 
-Firebase Functions를 배포하려면 **Blaze (pay-as-you-go) 플랜**이 필요합니다.
+## ⚠️ 대기 중인 배포
 
-**업그레이드 방법:**
-1. 다음 URL로 이동:
-   https://console.firebase.google.com/project/pricebuddy-5a869/usage/details
+### Functions 배포
+- **상태**: ⏳ Blaze 플랜 업그레이드 필요
+- **오류**: `Your project pricebuddy-5a869 must be on the Blaze (pay-as-you-go) plan`
+- **해결 방법**: Firebase Console에서 Blaze 플랜으로 업그레이드
 
-2. "Blaze 플랜으로 업그레이드" 클릭
+**업그레이드 링크:**
+https://console.firebase.google.com/project/pricebuddy-5a869/usage/details
 
-3. 결제 정보 입력 (무료 할당량이 있어서 소규모 사용 시 비용이 거의 들지 않습니다)
+---
 
-4. 업그레이드 완료 후 다시 배포:
+## 🚀 업그레이드 후 배포 방법
+
+### 1. Blaze 플랜 업그레이드
+1. 위 링크로 이동
+2. "업그레이드" 버튼 클릭
+3. 결제 정보 입력 (무료 할당량 내에서는 비용 없음)
+
+### 2. Functions 배포
+```bash
+cd services/api
+firebase deploy --only functions
+```
+
+배포되는 Functions:
+- `api`: 메인 HTTP API (자동화 기능 포함)
+- `updateProductPrices`: 가격 업데이트 스케줄러
+- `autoUpdateScrapers`: 스크래퍼 자동 업데이트 스케줄러
+
+---
+
+## 📊 배포 후 확인
+
+### Functions 확인
+- **Console**: https://console.firebase.google.com/project/pricebuddy-5a869/functions
+- **API 엔드포인트**: `https://asia-northeast3-pricebuddy-5a869.cloudfunctions.net/api`
+
+### 자동화 API 테스트
+```bash
+# 프로덕션 API 테스트
+API_BASE_URL=https://asia-northeast3-pricebuddy-5a869.cloudfunctions.net/api \
+  ./scripts/test-automation.sh
+```
+
+---
+
+## 💡 Blaze 플랜 정보
+
+### 무료 할당량 (매월)
+- **Functions 호출**: 200만 회
+- **Functions 실행 시간**: 400,000 GB-초
+- **Firestore 읽기**: 50,000회/일
+- **Firestore 쓰기**: 20,000회/일
+- **Storage**: 5GB
+
+### 초기 단계에서는 무료 할당량으로 충분합니다!
+
+---
+
+## 📋 다음 단계
+
+1. **Blaze 플랜 업그레이드** (필수)
+   - https://console.firebase.google.com/project/pricebuddy-5a869/usage/details
+
+2. **Functions 배포**
    ```bash
    cd services/api
    firebase deploy --only functions
    ```
 
-## 📋 배포 명령어
+3. **배포 확인**
+   - Functions Console에서 확인
+   - API 엔드포인트 테스트
 
-업그레이드 후:
-
-```bash
-# Functions 배포
-cd services/api
-firebase deploy --only functions
-
-# 또는 전체 배포 스크립트 사용
-./scripts/deploy.sh api
-```
-
-## 🎯 현재 상태
-
-- ✅ Firestore 보안 규칙: 배포 완료
-- ✅ Firestore 인덱스: 배포 완료  
-- ✅ 코드 빌드: 성공
-- ⏳ Functions 배포: Blaze 플랜 업그레이드 필요
-
-## 💡 참고
-
-- Blaze 플랜은 무료 할당량이 있어서 소규모 사용 시 비용이 거의 들지 않습니다
-- Firestore 읽기/쓰기, Functions 호출 등에 무료 할당량이 제공됩니다
-- 자세한 내용: https://firebase.google.com/pricing
+4. **환경 변수 설정** (선택)
+   ```bash
+   firebase functions:config:set \
+     web_app.url="https://pricebuddy-5a869.web.app"
+   ```
 
 ---
 
-**Blaze 플랜으로 업그레이드하신 후 `firebase deploy --only functions`를 실행하세요!** 🚀
+**Firestore 배포는 완료되었습니다! Blaze 플랜 업그레이드 후 Functions를 배포하세요.** 🚀

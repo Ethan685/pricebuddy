@@ -12,6 +12,10 @@ export const SHIPPING_RULES: ShippingRule[] = [
   { marketplace: "naver", baseFee: 2500, perKgFee: 700 },
   { marketplace: "gmarket", baseFee: 3000, perKgFee: 800 },
   { marketplace: "11st", baseFee: 3000, perKgFee: 800 },
+  { marketplace: "auction", baseFee: 3000, perKgFee: 800 },
+  { marketplace: "interpark", baseFee: 3000, perKgFee: 800 },
+  { marketplace: "tmon", baseFee: 2500, perKgFee: 700 },
+  { marketplace: "wemakeprice", baseFee: 2500, perKgFee: 700 },
   
   // 일본
   { marketplace: "amazon_jp", baseFee: 7000, perKgFee: 1200 },
@@ -82,5 +86,19 @@ export const SHIPPING_RULES: ShippingRule[] = [
   { marketplace: "overstock", baseFee: 11000, perKgFee: 1700 },
   { marketplace: "g2a", baseFee: 0, perKgFee: 0 }, // 디지털 상품
   { marketplace: "allegro", baseFee: 6000, perKgFee: 900 },
+  
+  // 추가 해외 마켓플레이스 (최적화된 배송비)
+  // Amazon 지역별 최적화
+  { marketplace: "amazon_jp", baseFee: 7000, perKgFee: 1200 }, // 일본 → 한국
+  { marketplace: "amazon_uk", baseFee: 12000, perKgFee: 1800 }, // 영국 → 한국
+  { marketplace: "amazon_ca", baseFee: 14000, perKgFee: 1900 }, // 캐나다 → 한국
+  { marketplace: "amazon_de", baseFee: 13000, perKgFee: 1900 }, // 독일 → 한국
+  { marketplace: "amazon_fr", baseFee: 13000, perKgFee: 1900 }, // 프랑스 → 한국
+  { marketplace: "amazon_it", baseFee: 13000, perKgFee: 1900 }, // 이탈리아 → 한국
+  { marketplace: "amazon_es", baseFee: 13000, perKgFee: 1900 }, // 스페인 → 한국
+  { marketplace: "amazon_au", baseFee: 12000, perKgFee: 1800 }, // 호주 → 한국
+  { marketplace: "amazon_sg", baseFee: 8000, perKgFee: 1200 }, // 싱가포르 → 한국
+  { marketplace: "amazon_mx", baseFee: 10000, perKgFee: 1500 }, // 멕시코 → 한국
+  { marketplace: "amazon_br", baseFee: 11000, perKgFee: 1600 }, // 브라질 → 한국
 ];
 

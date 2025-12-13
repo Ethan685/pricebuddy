@@ -24,6 +24,14 @@ import { lazadaSelectors } from "./config/lazada";
 import { jdSelectors } from "./config/jd";
 import { flipkartSelectors } from "./config/flipkart";
 import { mercadolibreSelectors } from "./config/mercadolibre";
+import { auctionSelectors } from "./config/auction";
+import { interparkSelectors } from "./config/interpark";
+import { tmonSelectors } from "./config/tmon";
+import { wemakepriceSelectors } from "./config/wemakeprice";
+import { costcoSelectors } from "./config/costco";
+import { neweggSelectors } from "./config/newegg";
+import { zalandoSelectors } from "./config/zalando";
+import { asosSelectors } from "./config/asos";
 
 export async function scrapeOffer(
   req: ScrapeRequest
@@ -35,6 +43,15 @@ export async function scrapeOffer(
       return parseCoupang(raw);
     case "naver":
       return parseNaver(raw);
+    // 한국 추가 쇼핑몰
+    case "auction":
+      return parseWithConfig(raw, auctionSelectors, "KRW");
+    case "interpark":
+      return parseWithConfig(raw, interparkSelectors, "KRW");
+    case "tmon":
+      return parseWithConfig(raw, tmonSelectors, "KRW");
+    case "wemakeprice":
+      return parseWithConfig(raw, wemakepriceSelectors, "KRW");
     // Amazon 계열
     case "amazon_us":
       return parseWithConfig(raw, amazonUsSelectors, "USD");
@@ -75,9 +92,9 @@ export async function scrapeOffer(
     case "bestbuy":
       return parseWithConfig(raw, bestbuySelectors, "USD");
     case "costco":
-      return parseWithConfig(raw, walmartSelectors, "USD"); // 비슷한 구조
+      return parseWithConfig(raw, costcoSelectors, "USD");
     case "newegg":
-      return parseWithConfig(raw, bestbuySelectors, "USD"); // 비슷한 구조
+      return parseWithConfig(raw, neweggSelectors, "USD");
     // eBay 계열
     case "ebay":
     case "ebay_us":
@@ -112,13 +129,15 @@ export async function scrapeOffer(
       return parseWithConfig(raw, mercadolibreSelectors, "USD");
     // 유럽
     case "zalando":
+      return parseWithConfig(raw, zalandoSelectors, "EUR");
+    case "asos":
+      return parseWithConfig(raw, asosSelectors, "GBP");
     case "mediamarkt":
     case "saturn":
     case "otto":
     case "bol":
     case "cdiscount":
     case "fnac":
-    case "asos":
       return parseWithConfig(raw, amazonUsSelectors, "EUR"); // 기본 구조 사용
     // 기타
     case "etsy":

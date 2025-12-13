@@ -16,6 +16,6 @@
     "declaration": false,
     "declarationMap": false
   },
-  "include": ["src/**/*", "../../libs/**/*", "../../services/pricing/src/**/*"]
+  "include": ["src/**/*", "../../libs/**/*", "../../services/pricing/src/**/*"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.e2e.ts", "src/test-e2e.ts", "../**/test.ts", "../../libs/**/dist/**"]
 }
-

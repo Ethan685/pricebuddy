@@ -4,6 +4,10 @@ export type Marketplace =
   | "naver"
   | "gmarket"
   | "11st"
+  | "auction"
+  | "interpark"
+  | "tmon"
+  | "wemakeprice"
   // 일본
   | "amazon_jp"
   | "rakuten"

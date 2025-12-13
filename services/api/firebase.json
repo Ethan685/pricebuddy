@@ -3,11 +3,14 @@
     {
       "source": ".",
       "codebase": "default",
+      "runtime": "nodejs20",
       "ignore": [
         "node_modules",
         ".git",
         "firebase-debug.log",
-        "firebase-debug.*.log"
+        "firebase-debug.*.log",
+        "../../services/pricing",
+        "../../libs"
       ],
       "predeploy": [
         "npm --prefix \"$RESOURCE_DIR\" run build"
