@@ -23,6 +23,28 @@ const app = express();
 
 app.use(express.json());
 
+// 루트 경로 핸들러
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "PriceBuddy API",
+    version: "1.0.0",
+    endpoints: {
+      search: "/search",
+      products: "/products",
+      monitoring: "/monitoring",
+      autoMarketing: "/auto-marketing",
+      autoSupport: "/auto-support",
+      autoAffiliate: "/auto-affiliate",
+    },
+  });
+});
+
+// Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 // 라우팅
 app.use("/search", searchRouter);
 app.use("/products", productDetailRouter);

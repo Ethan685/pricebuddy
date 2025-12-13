@@ -10,7 +10,9 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # API 기본 URL (로컬 또는 프로덕션)
-API_BASE_URL=${API_BASE_URL:-"http://localhost:5001/your-project-id/api"}
+# 로컬: http://localhost:5001/pricebuddy-5a869/asia-northeast3/api
+# 프로덕션: https://asia-northeast3-pricebuddy-5a869.cloudfunctions.net/api
+API_BASE_URL=${API_BASE_URL:-"http://localhost:5001/pricebuddy-5a869/asia-northeast3/api"}
 
 echo "=== 자동화 API 엔드포인트 테스트 ==="
 echo "API Base URL: $API_BASE_URL"
