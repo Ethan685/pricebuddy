@@ -4,65 +4,20 @@ import { Badge } from "@/shared/ui/Badge";
 import { formatKrw } from "@/shared/lib/money";
 import { formatRelativeTime } from "@/shared/lib/datetime";
 import { Link } from "react-router-dom";
-
-interface Deal {
-  id: string;
-  productId: string;
-  title: string;
-  originalPrice: number;
-  discountedPrice: number;
-  discountPercent: number;
-  marketplace: string;
-  url: string;
-  validUntil: string;
-  isFlashDeal: boolean;
-}
-
-// Mock 데이터
-const mockDeals: Deal[] = [
-  {
-    id: "1",
-    productId: "1",
-    title: "Apple iPhone 17 Pro 256GB",
-    originalPrice: 1890000,
-    discountedPrice: 1590000,
-    discountPercent: 16,
-    marketplace: "coupang",
-    url: "https://www.coupang.com/vp/products/123456",
-    validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    isFlashDeal: true,
-  },
-  {
-    id: "2",
-    productId: "2",
-    title: "Samsung Galaxy S24 Ultra 512GB",
-    originalPrice: 1490000,
-    discountedPrice: 1290000,
-    discountPercent: 13,
-    marketplace: "naver",
-    url: "https://smartstore.naver.com/products/789012",
-    validUntil: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-    isFlashDeal: true,
-  },
-  {
-    id: "3",
-    productId: "3",
-    title: "Sony WH-1000XM5 무선 헤드폰",
-    originalPrice: 499000,
-    discountedPrice: 399000,
-    discountPercent: 20,
-    marketplace: "coupang",
-    url: "https://www.coupang.com/vp/products/345678",
-    validUntil: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-    isFlashDeal: false,
-  },
-];
+import { useDeals } from "../api/useDeals";
+import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
+import { SkeletonPage } from "@/shared/ui/Skeleton";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 export function DealsPage() {
+  const { t } = useLanguage();
   const [filter, setFilter] = useState<"all" | "flash">("all");
   const [sortBy, setSortBy] = useState<"discount" | "price" | "time">("discount");
+  const { data, isLoading, error } = useDeals();
 
-  const filteredDeals = mockDeals.filter((deal) => {
+  const deals = data?.deals || [];
+
+  const filteredDeals = deals.filter((deal) => {
     if (filter === "flash") return deal.isFlashDeal;
     return true;
   });
@@ -81,25 +36,26 @@ export function DealsPage() {
   });
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">오늘만 초특가 딜</h1>
-        <p className="text-slate-400 mb-6">
-          한정 시간 특가 상품을 놓치지 마세요!
-        </p>
+    <AsyncBoundary isLoading={isLoading} error={error}>
+      <div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-4">{t("landing.deals.title")}</h1>
+          <p className="text-slate-400 mb-6">
+            {t("deals.subtitle")}
+          </p>
 
-        {/* Filters */}
-        <div className="flex gap-4 items-center">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilter("all")}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                filter === "all"
-                  ? "bg-emerald-600 text-white"
-                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+          {/* Filters */}
+          <div className="flex gap-4 items-center">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilter("all")}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  filter === "all"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
               }`}
             >
-              전체
+              {t("deals.filter.all")}
             </button>
             <button
               onClick={() => setFilter("flash")}
@@ -109,54 +65,74 @@ export function DealsPage() {
                   : "bg-slate-800 text-slate-300 hover:bg-slate-700"
               }`}
             >
-              플래시 딜
+              {t("deal.flash")}
             </button>
+            </div>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white"
+            >
+              <option value="discount">{t("deals.sort.discount")}</option>
+              <option value="price">{t("deals.sort.price")}</option>
+              <option value="time">{t("deals.sort.time")}</option>
+            </select>
           </div>
-
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white"
-          >
-            <option value="discount">할인율 높은 순</option>
-            <option value="price">가격 낮은 순</option>
-            <option value="time">마감 임박 순</option>
-          </select>
         </div>
-      </div>
 
-      {/* Deals Grid */}
-      <div className="grid md:grid-cols-4 gap-4">
-        {sortedDeals.map((deal) => (
-          <Link key={deal.id} to={`/products/${deal.productId}`}>
-            <Card className="hover:border-emerald-500/40 transition-colors cursor-pointer relative">
-              {deal.isFlashDeal && (
-                <Badge variant="danger" className="absolute top-2 right-2">
-                  플래시 딜
-                </Badge>
-              )}
-              <div className="bg-slate-800 h-48 rounded-lg mb-3 flex items-center justify-center">
-                <span className="text-slate-500">상품 이미지</span>
-              </div>
-              <h3 className="font-semibold mb-2 line-clamp-2">{deal.title}</h3>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-emerald-400 font-bold text-lg">
-                  {formatKrw(deal.discountedPrice)}
-                </span>
-                <span className="text-slate-500 line-through text-sm">
-                  {formatKrw(deal.originalPrice)}
-                </span>
-                <Badge variant="danger">{-deal.discountPercent}%</Badge>
-              </div>
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>{deal.marketplace}</span>
-                <span>⏰ {formatRelativeTime(deal.validUntil)}</span>
-              </div>
-            </Card>
-          </Link>
-        ))}
+        {/* Deals Grid */}
+        {sortedDeals.length === 0 ? (
+          <Card className="text-center py-12">
+            <div className="text-4xl mb-4">🎁</div>
+            <p className="text-slate-400">{t("deals.empty")}</p>
+          </Card>
+        ) : (
+          <div className="grid md:grid-cols-4 gap-4">
+            {sortedDeals.map((deal) => (
+              <Link key={deal.id} to={`/products/${deal.productId}`}>
+                <Card className="hover:border-emerald-500/40 transition-colors cursor-pointer relative">
+                  {deal.isFlashDeal && (
+                    <Badge variant="error" className="absolute top-2 right-2">
+                      플래시 딜
+                    </Badge>
+                  )}
+                  <div className="bg-slate-800 h-48 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                    {deal.imageUrl ? (
+                      <img
+                        src={deal.imageUrl}
+                        alt={deal.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                        }}
+                      />
+                    ) : null}
+                    <span className={`text-slate-500 ${deal.imageUrl ? "hidden" : ""}`}>
+                      {t("common.imagePlaceholder")}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold mb-2 line-clamp-2">{deal.title}</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-emerald-400 font-bold text-lg">
+                      {formatKrw(deal.discountedPrice)}
+                    </span>
+                    <span className="text-slate-500 line-through text-sm">
+                      {formatKrw(deal.originalPrice)}
+                    </span>
+                    <Badge variant="error">{-deal.discountPercent}%</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span>{deal.marketplace}</span>
+                    <span>⏰ {formatRelativeTime(deal.validUntil)}</span>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </AsyncBoundary>
   );
 }
-

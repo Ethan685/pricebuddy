@@ -4,8 +4,10 @@ import { SearchCard } from "../components/SearchCard";
 import { Button } from "@/shared/ui/Button";
 import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
 import { SkeletonPage } from "@/shared/ui/Skeleton";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 export function SearchPage() {
+  const { t } = useLanguage();
   const [query, setQuery] = useState("iphone");
   const [region, setRegion] = useState<"global" | "kr">("global");
   const [searchQuery, setSearchQuery] = useState("iphone");
@@ -19,13 +21,13 @@ export function SearchPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">상품 검색</h1>
+        <h1 className="text-3xl font-bold mb-4">{t("search.title")}</h1>
         <div className="flex gap-4">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="상품명을 입력하세요"
+            placeholder={t("search.placeholder")}
             className="flex-1 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -38,10 +40,10 @@ export function SearchPage() {
             onChange={(e) => setRegion(e.target.value as "global" | "kr")}
             className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white"
           >
-            <option value="global">글로벌</option>
-            <option value="kr">한국</option>
+            <option value="global">{t("search.region.global")}</option>
+            <option value="kr">{t("search.region.kr")}</option>
           </select>
-          <Button onClick={handleSearch}>검색</Button>
+          <Button onClick={handleSearch}>{t("search.button")}</Button>
         </div>
       </div>
 
@@ -54,7 +56,7 @@ export function SearchPage() {
           </div>
         ) : (
           <div className="text-center py-8 text-slate-400">
-            검색 결과가 없습니다.
+            {t("search.noResults")}
           </div>
         )}
       </AsyncBoundary>

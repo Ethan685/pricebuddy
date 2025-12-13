@@ -19,7 +19,7 @@
         }
     ],
     "hosting": {
-        "public": "web_app/dist",
+        "public": "apps/web_app/dist",
         "ignore": [
             "firebase.json",
             "**/.*",

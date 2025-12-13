@@ -9,8 +9,8 @@ export interface ProductDetail {
   aiSignal?: { label: "BUY" | "WAIT"; confidence: number; reason: string };
 }
 
-// 개발 모드에서 mock 데이터 사용
-const USE_MOCK_DATA = import.meta.env.DEV;
+// 프로덕션에서는 항상 실제 API 사용
+const USE_MOCK_DATA = false; // import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL;
 
 export function useProductDetail(productId: string) {
   return useQuery<ProductDetail>({
@@ -21,13 +21,13 @@ export function useProductDetail(productId: string) {
         await new Promise((resolve) => setTimeout(resolve, 500)); // 로딩 시뮬레이션
         return mockProductDetail;
       }
-      const data = await httpGet<ProductDetail>(`/products/${productId}`);
+      const data = await httpGet<ProductDetail>(`/getProduct/${productId}`);
       
       // 가격 히스토리가 없으면 가져오기
       if (!data.history || data.history.length === 0) {
         try {
           const historyData = await httpGet<{ history: { ts: string; totalPriceKrw: number }[] }>(
-            `/price-tracking/product/${productId}/history`
+            `/priceTracking/product/${productId}/history`
           );
           data.history = historyData.history;
         } catch (e) {

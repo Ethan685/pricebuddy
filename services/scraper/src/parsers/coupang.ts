@@ -3,6 +3,6 @@ import { parseWithConfig } from "./base";
 import { coupangSelectors } from "../config/coupang";
 
 export function parseCoupang(raw: ScrapeResultRaw): ParsedOfferOutput {
-  return parseWithConfig(raw, coupangSelectors, "KRW");
+  return parseWithConfig(raw.html, coupangSelectors, "KRW");
 }
 

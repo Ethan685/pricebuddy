@@ -3,6 +3,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { httpPost } from "@/shared/lib/http";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 interface PriceAlertButtonProps {
   productId: string;
@@ -11,6 +12,7 @@ interface PriceAlertButtonProps {
 
 export function PriceAlertButton({ productId, currentPrice }: PriceAlertButtonProps) {
   const { user } = useAuthContext();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [targetPrice, setTargetPrice] = useState(currentPrice * 0.9); // 기본값: 10% 할인
   const [isSet, setIsSet] = useState(false);
@@ -18,7 +20,7 @@ export function PriceAlertButton({ productId, currentPrice }: PriceAlertButtonPr
 
   const handleSetAlert = async () => {
     if (!user) {
-      alert("로그인이 필요합니다.");
+      alert(t("auth.loginRequired"));
       return;
     }
 
@@ -35,7 +37,7 @@ export function PriceAlertButton({ productId, currentPrice }: PriceAlertButtonPr
       setIsOpen(false);
     } catch (error) {
       console.error("Failed to set alert:", error);
-      alert("알림 설정에 실패했습니다.");
+      alert(t("product.alert.setFailed"));
     } finally {
       setLoading(false);
     }
@@ -47,17 +49,17 @@ export function PriceAlertButton({ productId, currentPrice }: PriceAlertButtonPr
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-emerald-300 font-semibold">
-              가격 알림이 설정되었습니다
+              {t("product.alert.setSuccess")}
             </div>
             <div className="text-xs text-slate-400 mt-1">
-              목표 가격: {targetPrice.toLocaleString()}원 도달 시 알림을 보내드립니다.
+              {t("product.alert.targetPrice")}: {targetPrice.toLocaleString()}{t("product.alert.targetPriceUnit")} {t("product.alert.targetPriceDesc")}
             </div>
           </div>
           <button
             onClick={() => setIsSet(false)}
             className="text-slate-400 hover:text-red-400"
           >
-            취소
+            {t("common.cancel")}
           </button>
         </div>
       </Card>
@@ -71,16 +73,16 @@ export function PriceAlertButton({ productId, currentPrice }: PriceAlertButtonPr
         onClick={() => setIsOpen(!isOpen)}
         className="w-full"
       >
-        {isOpen ? "닫기" : "가격 알림 설정"}
+        {isOpen ? t("common.close") : t("product.alert.setButton")}
       </Button>
 
       {isOpen && (
         <Card className="mt-4 p-4">
-          <h3 className="font-semibold mb-4">가격 알림 설정</h3>
+          <h3 className="font-semibold mb-4">{t("product.alert.setButton")}</h3>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
-                목표 가격 (원)
+                {t("product.alert.targetPrice")} ({t("product.alert.targetPriceUnit")})
               </label>
               <input
                 type="number"
@@ -91,10 +93,10 @@ export function PriceAlertButton({ productId, currentPrice }: PriceAlertButtonPr
                 step="1000"
               />
               <div className="text-xs text-slate-400 mt-1">
-                현재 가격: {currentPrice.toLocaleString()}원
+                {t("product.alert.currentPrice")}: {currentPrice.toLocaleString()}{t("product.alert.targetPriceUnit")}
                 {targetPrice < currentPrice && (
                   <span className="text-emerald-400 ml-2">
-                    ({((1 - targetPrice / currentPrice) * 100).toFixed(1)}% 할인 시)
+                    ({((1 - targetPrice / currentPrice) * 100).toFixed(1)}% {t("product.alert.discount")})
                   </span>
                 )}
               </div>
@@ -105,7 +107,7 @@ export function PriceAlertButton({ productId, currentPrice }: PriceAlertButtonPr
               className="w-full"
               disabled={loading || !user}
             >
-              {loading ? "설정 중..." : user ? "알림 설정하기" : "로그인 필요"}
+              {loading ? t("common.processing") : user ? t("product.alert.setConfirm") : t("auth.loginRequired")}
             </Button>
           </div>
         </Card>

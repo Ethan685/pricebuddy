@@ -1,17 +1,21 @@
 import { Button } from "./Button";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 interface ErrorStateProps {
   message?: string;
   onRetry?: () => void;
 }
 
-export function ErrorState({ message = "오류가 발생했습니다.", onRetry }: ErrorStateProps) {
+export function ErrorState({ message, onRetry }: ErrorStateProps) {
+  const { t } = useLanguage();
+  const errorMessage = message || t("common.error");
+  
   return (
     <div className="flex flex-col items-center justify-center py-12">
-      <div className="text-red-400 text-lg mb-4">{message}</div>
+      <div className="text-red-400 text-lg mb-4">{errorMessage}</div>
       {onRetry && (
         <Button onClick={onRetry} variant="secondary">
-          다시 시도
+          {t("common.retry")}
         </Button>
       )}
     </div>

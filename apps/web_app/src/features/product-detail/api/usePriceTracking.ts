@@ -11,7 +11,7 @@ export function useTrackProduct() {
       marketplace: string;
       productId?: string;
     }) => {
-      return httpPost("/price-tracking/track", data);
+      return httpPost("/priceTracking/track", data);
     },
   });
 }
@@ -24,7 +24,7 @@ export function usePriceHistory(productId: string) {
     queryKey: ["price-history", productId],
     queryFn: async () => {
       return httpGet<{ history: { ts: string; totalPriceKrw: number }[] }>(
-        `/price-tracking/product/${productId}/history`
+        `/priceTracking/product/${productId}/history`
       );
     },
     enabled: !!productId,

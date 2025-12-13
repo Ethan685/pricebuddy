@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { shareToKakao, copyToClipboard, generateShareUrl } from "@/shared/lib/share";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 interface ShareButtonProps {
   productId: string;
@@ -9,6 +10,7 @@ interface ShareButtonProps {
 }
 
 export function ShareButton({ productId, productTitle }: ShareButtonProps) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -16,7 +18,7 @@ export function ShareButton({ productId, productTitle }: ShareButtonProps) {
 
   const handleShare = async (method: "kakao" | "link") => {
     if (method === "kakao") {
-      shareToKakao(shareUrl, productTitle, `${productTitle} 최저가 비교`);
+      shareToKakao(shareUrl, productTitle, `${productTitle} ${t("product.shareTitle")}`);
     } else {
       await copyToClipboard(shareUrl);
       setCopied(true);
@@ -32,7 +34,7 @@ export function ShareButton({ productId, productTitle }: ShareButtonProps) {
         onClick={() => setIsOpen(!isOpen)}
         className="w-full"
       >
-        공유하기
+        {t("product.share")}
       </Button>
 
       {isOpen && (
@@ -42,13 +44,13 @@ export function ShareButton({ productId, productTitle }: ShareButtonProps) {
               onClick={() => handleShare("kakao")}
               className="w-full text-left px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors"
             >
-              카카오톡 공유
+              {t("product.share.kakao")}
             </button>
             <button
               onClick={() => handleShare("link")}
               className="w-full text-left px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors"
             >
-              {copied ? "✓ 링크 복사됨" : "링크 복사"}
+              {copied ? t("product.share.copied") : t("product.share.copyLink")}
             </button>
           </div>
         </Card>

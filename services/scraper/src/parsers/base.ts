@@ -35,7 +35,8 @@ export function parseWithConfig(
 
   return {
     title,
-    basePrice: price,
+    price,
+    basePrice: price, // 호환성
     currency,
     shippingFee,
     imageUrl,

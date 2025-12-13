@@ -9,7 +9,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*"],
-  "references": [{ "path": "../../libs/core" }]
+  "include": ["src/**/*"]
 }
 

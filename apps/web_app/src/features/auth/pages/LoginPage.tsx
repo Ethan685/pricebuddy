@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { useAuthContext } from "../context/AuthContext";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { login, loginWithGoogle } = useAuthContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,7 +23,7 @@ export function LoginPage() {
       await login(email, password);
       navigate("/");
     } catch (err: any) {
-      setError(err.message || "로그인에 실패했습니다.");
+      setError(err.message || t("auth.login.failed"));
     } finally {
       setLoading(false);
     }
@@ -33,7 +35,7 @@ export function LoginPage() {
       await loginWithGoogle();
       navigate("/");
     } catch (err: any) {
-      setError(err.message || "소셜 로그인에 실패했습니다.");
+      setError(err.message || t("auth.socialLogin.failed"));
     } finally {
       setLoading(false);
     }
@@ -42,7 +44,7 @@ export function LoginPage() {
   return (
     <div className="max-w-md mx-auto mt-16">
       <Card>
-        <h1 className="text-2xl font-bold mb-6 text-center">로그인</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">{t("auth.login.title")}</h1>
 
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-red-900/20 border border-red-500/40 text-red-400 text-sm">
@@ -52,25 +54,25 @@ export function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">이메일</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.email")}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
-              placeholder="your@email.com"
+              placeholder={t("auth.emailPlaceholder")}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">비밀번호</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.password")}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
-              placeholder="••••••••"
+              placeholder={t("auth.passwordPlaceholder")}
               required
             />
           </div>
@@ -81,7 +83,7 @@ export function LoginPage() {
             className="w-full"
             disabled={loading}
           >
-            {loading ? "로그인 중..." : "로그인"}
+            {loading ? t("auth.login.processing") : t("auth.login.button")}
           </Button>
         </form>
 
@@ -91,7 +93,7 @@ export function LoginPage() {
               <div className="w-full border-t border-slate-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-slate-900 text-slate-400">또는</span>
+              <span className="px-2 bg-slate-900 text-slate-400">{t("auth.or")}</span>
             </div>
           </div>
 
@@ -101,15 +103,15 @@ export function LoginPage() {
               disabled={loading}
               className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors disabled:opacity-50"
             >
-              Google로 로그인
+              {t("auth.socialLogin.google")}
             </button>
           </div>
         </div>
 
         <div className="mt-6 text-center text-sm text-slate-400">
-          계정이 없으신가요?{" "}
+          {t("auth.noAccount")}{" "}
           <a href="/signup" className="text-emerald-400 hover:underline">
-            회원가입
+            {t("auth.signup.link")}
           </a>
         </div>
       </Card>

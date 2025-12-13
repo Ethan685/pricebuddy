@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDataFreshness = exports.scheduledPriceUpdate = exports.getPriceHistory = exports.recordPriceSnapshot = void 0;
+exports.priceTracking = exports.getDataFreshness = exports.scheduledPriceUpdate = exports.getPriceHistory = exports.recordPriceSnapshot = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const db = admin.firestore();
@@ -229,6 +229,85 @@ exports.getDataFreshness = functions.https.onCall(async (data, context) => {
     catch (error) {
         console.error('Failed to get data freshness:', error);
         throw new functions.https.HttpsError('internal', 'Failed to check freshness');
+    }
+});
+// HTTP 엔드포인트: 가격 히스토리 조회
+// 경로: /price-tracking/product/{productId}/history
+exports.priceTracking = functions.region("asia-northeast3").https.onRequest(async (req, res) => {
+    // CORS 설정
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+        "https://pricebuddy-5a869.web.app",
+        "https://pricebuddy-5a869.firebaseapp.com",
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ];
+    if (origin && allowedOrigins.includes(origin)) {
+        res.set("Access-Control-Allow-Origin", origin);
+    }
+    else {
+        res.set("Access-Control-Allow-Origin", "*");
+    }
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") {
+        res.status(200).send("");
+        return;
+    }
+    try {
+        const path = req.path;
+        functions.logger.info("Price Tracking request", { path, method: req.method });
+        // 경로 파싱: /price-tracking/product/{productId}/history 또는 /price-tracking/track
+        if (path.includes("/product/") && path.includes("/history")) {
+            // GET /price-tracking/product/{productId}/history
+            if (req.method !== "GET") {
+                res.status(405).json({ error: "Method not allowed" });
+                return;
+            }
+            const pathParts = path.split("/");
+            const productIdIndex = pathParts.indexOf("product");
+            const productId = productIdIndex >= 0 && pathParts[productIdIndex + 1] ? pathParts[productIdIndex + 1] : null;
+            if (!productId) {
+                res.status(400).json({ error: "Product ID is required" });
+                return;
+            }
+            // price_history 컬렉션에서 조회
+            const historySnap = await db.collection("products").doc(productId).collection("price_history")
+                .orderBy("timestamp", "asc")
+                .limit(30)
+                .get();
+            const history = historySnap.docs.map(doc => {
+                var _a, _b, _c;
+                const d = doc.data();
+                const timestamp = ((_c = (_b = (_a = d.timestamp) === null || _a === void 0 ? void 0 : _a.toDate) === null || _b === void 0 ? void 0 : _b.call(_a)) === null || _c === void 0 ? void 0 : _c.toISOString()) || d.date || d.timestamp;
+                return {
+                    ts: timestamp,
+                    totalPriceKrw: d.price || d.totalPriceKrw || 0
+                };
+            });
+            res.json({ history });
+        }
+        else if (path.includes("/track")) {
+            // POST /price-tracking/track
+            if (req.method !== "POST") {
+                res.status(405).json({ error: "Method not allowed" });
+                return;
+            }
+            const { url, marketplace, productId } = req.body;
+            if (!url || !marketplace || !productId) {
+                res.status(400).json({ error: "Missing required fields: url, marketplace, productId" });
+                return;
+            }
+            // TODO: 실제 추적 로직 구현
+            res.json({ success: true, message: "Price tracking started" });
+        }
+        else {
+            res.status(404).json({ error: "Not found" });
+        }
+    }
+    catch (error) {
+        functions.logger.error("Price Tracking failed", error);
+        res.status(500).json({ error: "Request failed", message: error.message });
     }
 });
 //# sourceMappingURL=price-tracking.js.map

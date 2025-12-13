@@ -4,9 +4,11 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { useAuthContext } from "../context/AuthContext";
 import { httpPost } from "@/shared/lib/http";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 export function SignupPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const { signup, loginWithGoogle } = useAuthContext();
   const [email, setEmail] = useState("");
@@ -29,12 +31,12 @@ export function SignupPage() {
     setError("");
 
     if (password !== confirmPassword) {
-      setError("비밀번호가 일치하지 않습니다.");
+      setError(t("auth.signup.passwordMismatch"));
       return;
     }
 
     if (password.length < 6) {
-      setError("비밀번호는 최소 6자 이상이어야 합니다.");
+      setError(t("auth.signup.passwordMinLength"));
       return;
     }
 
@@ -57,7 +59,7 @@ export function SignupPage() {
       
       navigate("/");
     } catch (err: any) {
-      setError(err.message || "회원가입에 실패했습니다.");
+      setError(err.message || t("auth.signup.failed"));
     } finally {
       setLoading(false);
     }
@@ -69,7 +71,7 @@ export function SignupPage() {
       await loginWithGoogle();
       navigate("/");
     } catch (err: any) {
-      setError(err.message || "소셜 로그인에 실패했습니다.");
+      setError(err.message || t("auth.socialLogin.failed"));
     } finally {
       setLoading(false);
     }
@@ -78,7 +80,7 @@ export function SignupPage() {
   return (
     <div className="max-w-md mx-auto mt-16">
       <Card>
-        <h1 className="text-2xl font-bold mb-6 text-center">회원가입</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">{t("auth.signup.title")}</h1>
 
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-red-900/20 border border-red-500/40 text-red-400 text-sm">
@@ -88,38 +90,38 @@ export function SignupPage() {
 
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">이메일</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.email")}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
-              placeholder="your@email.com"
+              placeholder={t("auth.emailPlaceholder")}
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">비밀번호</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.password")}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
-              placeholder="••••••••"
+              placeholder={t("auth.passwordPlaceholder")}
               required
               minLength={6}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">비밀번호 확인</label>
+            <label className="block text-sm font-medium mb-2">{t("auth.confirmPassword")}</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-emerald-500"
-              placeholder="••••••••"
+              placeholder={t("auth.passwordPlaceholder")}
               required
               minLength={6}
             />
@@ -128,10 +130,10 @@ export function SignupPage() {
           {referralCode && (
             <div className="p-3 rounded-lg bg-emerald-900/20 border border-emerald-500/40">
               <div className="text-sm text-emerald-300">
-                추천 코드가 적용되었습니다: <span className="font-mono">{referralCode}</span>
+                {t("auth.signup.referralApplied")}: <span className="font-mono">{referralCode}</span>
               </div>
               <div className="text-xs text-slate-400 mt-1">
-                가입 시 3,000원 보너스를 받으실 수 있습니다!
+                {t("auth.signup.referralBonus")}
               </div>
             </div>
           )}
@@ -142,7 +144,7 @@ export function SignupPage() {
             className="w-full"
             disabled={loading}
           >
-            {loading ? "처리 중..." : "회원가입"}
+            {loading ? t("common.processing") : t("auth.signup.button")}
           </Button>
         </form>
 
@@ -152,7 +154,7 @@ export function SignupPage() {
               <div className="w-full border-t border-slate-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-slate-900 text-slate-400">또는</span>
+              <span className="px-2 bg-slate-900 text-slate-400">{t("auth.or")}</span>
             </div>
           </div>
 
@@ -162,15 +164,15 @@ export function SignupPage() {
               disabled={loading}
               className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors disabled:opacity-50"
             >
-              Google로 회원가입
+              {t("auth.socialSignup.google")}
             </button>
           </div>
         </div>
 
         <div className="mt-6 text-center text-sm text-slate-400">
-          이미 계정이 있으신가요?{" "}
+          {t("auth.hasAccount")}{" "}
           <a href="/login" className="text-emerald-400 hover:underline">
-            로그인
+            {t("auth.login.link")}
           </a>
         </div>
       </Card>

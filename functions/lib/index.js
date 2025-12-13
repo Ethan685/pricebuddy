@@ -26,7 +26,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.estimateTotals = exports.predictEngagement = exports.optimizeCoupons = exports.analyzeReviews = exports.chatWithAI = exports.apiCreateAlert = exports.apiSearchProducts = exports.apiGetPrices = exports.apiGetProduct = exports.removeMonitoredSKU = exports.getMonitoredSKUs = exports.bulkImportSKUs = exports.revokeApiKey = exports.listApiKeys = exports.createApiKey = exports.generateB2BReport = exports.onProductCreate = exports.helloWorld = void 0;
+exports.estimateTotals = exports.wishlist = exports.priceTracking = exports.predictEngagement = exports.optimizeCoupons = exports.analyzeReviews = exports.chatWithAI = exports.apiCreateAlert = exports.apiSearchProducts = exports.apiGetPrices = exports.apiGetProduct = exports.removeMonitoredSKU = exports.getMonitoredSKUs = exports.bulkImportSKUs = exports.revokeApiKey = exports.listApiKeys = exports.createApiKey = exports.generateB2BReport = exports.onProductCreate = exports.checkPriceAlerts = exports.wallet = exports.purchases = exports.autoCollectProducts = exports.collectPopularProducts = exports.deals = exports.getProduct = exports.seedProducts = exports.search = exports.helloWorld = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 if (!admin.apps.length) {
@@ -39,8 +39,30 @@ exports.helloWorld = functions.https.onRequest((request, response) => {
     response.send("Hello from Firebase!");
 });
 __exportStar(require("./api/search"), exports);
+var search_1 = require("./api/search"); // HTTP 엔드포인트 export
+Object.defineProperty(exports, "search", { enumerable: true, get: function () { return search_1.search; } });
+Object.defineProperty(exports, "seedProducts", { enumerable: true, get: function () { return search_1.seedProducts; } });
 __exportStar(require("./api/details"), exports);
+var details_1 = require("./api/details"); // HTTP 엔드포인트 export
+Object.defineProperty(exports, "getProduct", { enumerable: true, get: function () { return details_1.getProduct; } });
+__exportStar(require("./api/deals"), exports);
+var deals_1 = require("./api/deals"); // HTTP 엔드포인트 export
+Object.defineProperty(exports, "deals", { enumerable: true, get: function () { return deals_1.deals; } });
+__exportStar(require("./api/product-collector"), exports);
+var product_collector_1 = require("./api/product-collector"); // HTTP 엔드포인트 export
+Object.defineProperty(exports, "collectPopularProducts", { enumerable: true, get: function () { return product_collector_1.collectPopularProducts; } });
+__exportStar(require("./api/auto-product-collector"), exports);
+var auto_product_collector_1 = require("./api/auto-product-collector"); // 스케줄러 export
+Object.defineProperty(exports, "autoCollectProducts", { enumerable: true, get: function () { return auto_product_collector_1.autoCollectProducts; } });
+__exportStar(require("./api/purchases"), exports);
+var purchases_1 = require("./api/purchases"); // HTTP 엔드포인트 export
+Object.defineProperty(exports, "purchases", { enumerable: true, get: function () { return purchases_1.purchases; } });
+__exportStar(require("./api/wallet-http"), exports);
+var wallet_http_1 = require("./api/wallet-http"); // HTTP 엔드포인트 export
+Object.defineProperty(exports, "wallet", { enumerable: true, get: function () { return wallet_http_1.wallet; } });
 __exportStar(require("./triggers/alerts"), exports);
+var alerts_1 = require("./triggers/alerts");
+Object.defineProperty(exports, "checkPriceAlerts", { enumerable: true, get: function () { return alerts_1.checkPriceAlerts; } });
 __exportStar(require("./triggers/auth"), exports);
 __exportStar(require("./triggers/reporting"), exports);
 __exportStar(require("./api/wallet"), exports);
@@ -110,6 +132,8 @@ __exportStar(require("./api/rest"), exports);
 __exportStar(require("./api/search-global"), exports);
 // Trust & Reliability Features
 __exportStar(require("./api/price-tracking"), exports);
+var price_tracking_1 = require("./api/price-tracking");
+Object.defineProperty(exports, "priceTracking", { enumerable: true, get: function () { return price_tracking_1.priceTracking; } });
 __exportStar(require("./triggers/referrals"), exports);
 __exportStar(require("./api/share"), exports);
 __exportStar(require("./api/payments"), exports);
@@ -122,6 +146,8 @@ __exportStar(require("./api/alerts"), exports);
 __exportStar(require("./api/referrals"), exports);
 // export * from "./api/engagement"; // Duplicate
 __exportStar(require("./api/wishlist"), exports);
+var wishlist_1 = require("./api/wishlist");
+Object.defineProperty(exports, "wishlist", { enumerable: true, get: function () { return wishlist_1.wishlist; } });
 __exportStar(require("./api/telemetry"), exports);
 __exportStar(require("./api/delivery"), exports);
 // export * from "./api/fraud"; // Likely broken or conflicting

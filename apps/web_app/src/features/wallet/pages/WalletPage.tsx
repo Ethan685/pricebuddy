@@ -5,6 +5,8 @@ import { formatKrw } from "@/shared/lib/money";
 import { formatDateTime } from "@/shared/lib/datetime";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { httpGet } from "@/shared/lib/http";
+import { useLanguage } from "@/shared/context/LanguageContext";
+import { Link } from "react-router-dom";
 
 interface Transaction {
   id: string;
@@ -17,6 +19,7 @@ interface Transaction {
 
 export function WalletPage() {
   const { user } = useAuthContext();
+  const { t } = useLanguage();
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,42 +54,42 @@ export function WalletPage() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-400 mb-4">로그인이 필요합니다.</p>
-        <Button variant="primary" onClick={() => (window.location.href = "/login")}>
-          로그인하기
-        </Button>
+        <p className="text-slate-400 mb-4">{t("auth.loginRequired")}</p>
+        <Link to="/login">
+          <Button variant="primary">{t("auth.loginButton")}</Button>
+        </Link>
       </div>
     );
   }
 
   if (loading) {
-    return <div className="text-center py-12 text-slate-400">로딩 중...</div>;
+    return <div className="text-center py-12 text-slate-400">{t("common.loading")}</div>;
   }
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">내 지갑</h1>
-        <p className="text-slate-400">캐시백과 보너스를 확인하세요.</p>
+        <h1 className="text-3xl font-bold mb-2">{t("wallet.title")}</h1>
+        <p className="text-slate-400">{t("wallet.subtitle")}</p>
       </div>
 
       {/* Balance Card */}
       <Card className="mb-6 bg-gradient-to-r from-emerald-900/20 to-blue-900/20 border-emerald-500/40">
         <div className="text-center py-8">
-          <div className="text-sm text-slate-400 mb-2">총 잔고</div>
+          <div className="text-sm text-slate-400 mb-2">{t("wallet.balance")}</div>
           <div className="text-5xl font-bold text-emerald-400 mb-4">
             {formatKrw(balance)}
           </div>
-          <Button variant="primary">출금하기</Button>
+          <Button variant="primary">{t("wallet.withdraw")}</Button>
         </div>
       </Card>
 
       {/* Transactions */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">거래 내역</h2>
+        <h2 className="text-xl font-semibold mb-4">{t("wallet.transactions")}</h2>
         {transactions.length === 0 ? (
           <Card className="text-center py-12">
-            <div className="text-slate-400">거래 내역이 없습니다.</div>
+            <div className="text-slate-400">{t("wallet.empty")}</div>
           </Card>
         ) : (
           <div className="space-y-2">

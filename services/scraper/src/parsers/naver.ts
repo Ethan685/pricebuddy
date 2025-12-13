@@ -3,6 +3,6 @@ import { parseWithConfig } from "./base";
 import { naverSelectors } from "../config/naver";
 
 export function parseNaver(raw: ScrapeResultRaw): ParsedOfferOutput {
-  return parseWithConfig(raw, naverSelectors, "KRW");
+  return parseWithConfig(raw.html, naverSelectors, "KRW");
 }
 

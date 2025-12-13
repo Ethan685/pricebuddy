@@ -8,9 +8,11 @@ import { ShareButton } from "../components/ShareButton";
 import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
 import { Button } from "@/shared/ui/Button";
 import { useState } from "react";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 export function ProductDetailPage() {
   const { productId } = useParams();
+  const { t } = useLanguage();
   const { data, isLoading, error } = useProductDetail(productId!);
 
   return (
@@ -18,7 +20,7 @@ export function ProductDetailPage() {
       {data ? (
         <ProductDetailContent data={data} />
       ) : (
-        <div className="text-center py-8 text-red-400">상품 정보를 가져올 수 없습니다.</div>
+        <div className="text-center py-8 text-red-400">{t("product.error.loadFailed")}</div>
       )}
     </AsyncBoundary>
   );
@@ -26,25 +28,44 @@ export function ProductDetailPage() {
 
 function ProductDetailContent({ data }: { data: any }) {
   const { product, offers, history, aiSignal } = data;
+  const { t } = useLanguage();
   const trackProduct = useTrackProduct();
   const [isTracking, setIsTracking] = useState(false);
 
+  const [trackingStatus, setTrackingStatus] = useState<"idle" | "success" | "error">("idle");
+
   const handleTrackPrice = async () => {
-    if (!offers || offers.length === 0) return;
+    if (!offers || offers.length === 0) {
+      alert(t("product.tracking.noOffers"));
+      return;
+    }
     
     setIsTracking(true);
+    setTrackingStatus("idle");
     try {
       // 첫 번째 offer의 URL로 가격 추적 시작
       const firstOffer = offers[0];
-      await trackProduct.mutateAsync({
+      const result = await trackProduct.mutateAsync({
         url: firstOffer.url,
         marketplace: firstOffer.marketplace,
         productId: product.id,
       });
-      alert("가격 추적이 시작되었습니다!");
+      
+      setTrackingStatus("success");
+      console.log("Price tracking started:", result);
+      
+      // 성공 메시지 표시
+      setTimeout(() => {
+        setTrackingStatus("idle");
+      }, 3000);
     } catch (error) {
       console.error("Failed to start tracking:", error);
-      alert("가격 추적 시작에 실패했습니다.");
+      setTrackingStatus("error");
+      alert(t("product.tracking.failed"));
+      
+      setTimeout(() => {
+        setTrackingStatus("idle");
+      }, 3000);
     } finally {
       setIsTracking(false);
     }
@@ -66,7 +87,7 @@ function ProductDetailContent({ data }: { data: any }) {
         ) : (
           <div className="text-slate-500 text-center">
             <div className="text-4xl mb-2">📱</div>
-            <div className="text-sm">이미지 준비 중</div>
+            <div className="text-sm">{t("product.imagePreparing")}</div>
           </div>
         )}
       </div>
@@ -82,24 +103,41 @@ function ProductDetailContent({ data }: { data: any }) {
         {aiSignal && (
           <div className="rounded-xl border border-emerald-500/40 bg-emerald-900/20 p-4">
             <div className="text-sm text-emerald-300">
-              AI 신호: {aiSignal.label === "BUY" ? "BUY NOW" : "WAIT"}
+              {t("product.aiSignal")}: {aiSignal.label === "BUY" ? t("product.aiSignal.buy") : t("product.aiSignal.wait")}
             </div>
             <div className="text-xs text-slate-300 mt-1">
-              Confidence: {Math.round(aiSignal.confidence * 100)}%
+              {t("recommendations.confidence")}: {Math.round(aiSignal.confidence * 100)}%
             </div>
             <div className="text-xs text-slate-400 mt-2">{aiSignal.reason}</div>
           </div>
         )}
 
         {/* Price Tracking Button */}
-        <Button
-          variant="primary"
-          onClick={handleTrackPrice}
-          disabled={isTracking || !offers || offers.length === 0}
-          className="w-full"
-        >
-          {isTracking ? "추적 중..." : "가격 추적 시작"}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            variant="primary"
+            onClick={handleTrackPrice}
+            disabled={isTracking || !offers || offers.length === 0}
+            className="w-full"
+          >
+            {isTracking 
+              ? t("product.tracking.inProgress") 
+              : trackingStatus === "success"
+              ? t("product.tracking.started")
+              : t("product.tracking.start")
+            }
+          </Button>
+          {trackingStatus === "success" && (
+            <div className="text-sm text-emerald-400 text-center">
+              ✅ {t("product.tracking.successMessage")}
+            </div>
+          )}
+          {trackingStatus === "error" && (
+            <div className="text-sm text-red-400 text-center">
+              ❌ {t("product.tracking.errorMessage")}
+            </div>
+          )}
+        </div>
 
         {/* Price Alert */}
         <PriceAlertButton
@@ -112,13 +150,13 @@ function ProductDetailContent({ data }: { data: any }) {
 
         {/* Offers 리스트 */}
         <div className="space-y-2">
-          <h2 className="text-lg font-semibold mb-2">가격 비교</h2>
+          <h2 className="text-lg font-semibold mb-2">{t("product.priceComparison")}</h2>
           {offers && offers.length > 0 ? (
             offers.map((offer: any) => (
               <PriceCard key={offer.id} offer={offer} />
             ))
           ) : (
-            <div className="text-slate-400 text-center py-4">가격 정보가 없습니다.</div>
+            <div className="text-slate-400 text-center py-4">{t("product.noPriceInfo")}</div>
           )}
         </div>
       </div>

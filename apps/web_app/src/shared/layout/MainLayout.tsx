@@ -42,31 +42,31 @@ export function MainLayout({ children }: MainLayoutProps) {
                     to="/wishlist"
                     className="text-slate-300 hover:text-emerald-400 transition-colors"
                   >
-                    위시리스트
+                    {t("nav.wishlist")}
                   </Link>
                   <Link
                     to="/purchases"
                     className="text-slate-300 hover:text-emerald-400 transition-colors"
                   >
-                    구매내역
+                    {t("nav.purchases")}
                   </Link>
                   <Link
                     to="/wallet"
                     className="text-slate-300 hover:text-emerald-400 transition-colors"
                   >
-                    지갑
+                    {t("nav.wallet")}
                   </Link>
                   <Link
                     to="/referral"
                     className="text-slate-300 hover:text-emerald-400 transition-colors"
                   >
-                    추천하기
+                    {t("nav.referral")}
                   </Link>
                   <Link
                     to="/subscription"
                     className="text-slate-300 hover:text-emerald-400 transition-colors"
                   >
-                    프리미엄
+                    {t("nav.premium")}
                   </Link>
                 </>
               )}

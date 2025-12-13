@@ -5,6 +5,8 @@ import { Badge } from "@/shared/ui/Badge";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { formatKrw } from "@/shared/lib/money";
 import { httpPost } from "@/shared/lib/http";
+import { useLanguage } from "@/shared/context/LanguageContext";
+import { Link } from "react-router-dom";
 
 interface SubscriptionPlan {
   id: string;
@@ -15,6 +17,7 @@ interface SubscriptionPlan {
   popular?: boolean;
 }
 
+// Note: Features will be translated using i18n keys
 const PLANS: SubscriptionPlan[] = [
   {
     id: "free",
@@ -22,10 +25,10 @@ const PLANS: SubscriptionPlan[] = [
     price: 0,
     period: "monthly",
     features: [
-      "기본 가격 비교",
-      "일일 5개 알림",
-      "기본 가격 히스토리",
-      "광고 포함",
+      "basic_price_comparison",
+      "daily_5_alerts",
+      "basic_price_history",
+      "ads_included",
     ],
   },
   {
@@ -34,12 +37,12 @@ const PLANS: SubscriptionPlan[] = [
     price: 4900,
     period: "monthly",
     features: [
-      "무제한 가격 비교",
-      "무제한 알림",
-      "고급 가격 분석",
-      "광고 제거",
-      "우선 고객 지원",
-      "AI 구매 추천",
+      "unlimited_price_comparison",
+      "unlimited_alerts",
+      "advanced_price_analysis",
+      "ad_free",
+      "priority_support",
+      "ai_recommendations",
     ],
     popular: true,
   },
@@ -49,25 +52,26 @@ const PLANS: SubscriptionPlan[] = [
     price: 49000,
     period: "yearly",
     features: [
-      "무제한 가격 비교",
-      "무제한 알림",
-      "고급 가격 분석",
-      "광고 제거",
-      "우선 고객 지원",
-      "AI 구매 추천",
-      "연간 17% 할인",
+      "unlimited_price_comparison",
+      "unlimited_alerts",
+      "advanced_price_analysis",
+      "ad_free",
+      "priority_support",
+      "ai_recommendations",
+      "yearly_17_discount",
     ],
   },
 ];
 
 export function SubscriptionPage() {
   const { user } = useAuthContext();
+  const { t } = useLanguage();
   const [selectedPlan, setSelectedPlan] = useState<string>("premium");
   const [loading, setLoading] = useState(false);
 
   const handleSubscribe = async (planId: string) => {
     if (!user) {
-      alert("로그인이 필요합니다.");
+      alert(t("auth.loginRequired"));
       return;
     }
 
@@ -96,11 +100,11 @@ export function SubscriptionPage() {
         const paymentUrl = `${import.meta.env.VITE_API_BASE_URL || ""}/payment/redirect?paymentId=${result.paymentId}`;
         window.location.href = paymentUrl;
       } else {
-        alert("결제 요청에 실패했습니다.");
+        alert(t("subscription.paymentFailed"));
       }
     } catch (error) {
       console.error("Subscription failed:", error);
-      alert("구독에 실패했습니다.");
+      alert(t("subscription.subscribeFailed"));
     } finally {
       setLoading(false);
     }
@@ -109,10 +113,10 @@ export function SubscriptionPage() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-400 mb-4">로그인이 필요합니다.</p>
-        <Button variant="primary" onClick={() => (window.location.href = "/login")}>
-          로그인하기
-        </Button>
+        <p className="text-slate-400 mb-4">{t("auth.loginRequired")}</p>
+        <Link to="/login">
+          <Button variant="primary">{t("auth.loginButton")}</Button>
+        </Link>
       </div>
     );
   }
@@ -120,9 +124,9 @@ export function SubscriptionPage() {
   return (
     <div>
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-4">프리미엄 구독</h1>
+        <h1 className="text-3xl font-bold mb-4">{t("subscription.title")}</h1>
         <p className="text-slate-400">
-          더 많은 기능과 혜택을 받으세요
+          {t("subscription.subtitle")}
         </p>
       </div>
 
@@ -141,24 +145,24 @@ export function SubscriptionPage() {
                 variant="success"
                 className="absolute -top-3 left-1/2 -translate-x-1/2"
               >
-                인기
+                {t("subscription.popular")}
               </Badge>
             )}
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
               <div className="mb-1">
                 <span className="text-4xl font-bold">
-                  {plan.price === 0 ? "무료" : formatKrw(plan.price)}
+                  {plan.price === 0 ? t("subscription.free") : formatKrw(plan.price)}
                 </span>
                 {plan.price > 0 && (
                   <span className="text-slate-400 text-sm ml-2">
-                    /{plan.period === "monthly" ? "월" : "년"}
+                    /{plan.period === "monthly" ? t("subscription.period.month") : t("subscription.period.year")}
                   </span>
                 )}
               </div>
               {plan.period === "yearly" && (
                 <div className="text-sm text-emerald-400">
-                  월 {formatKrw(Math.round(plan.price / 12))}원
+                  {t("subscription.period.month")} {formatKrw(Math.round(plan.price / 12))}{t("subscription.currency")}
                 </div>
               )}
             </div>
@@ -167,7 +171,7 @@ export function SubscriptionPage() {
               {plan.features.map((feature, idx) => (
                 <li key={idx} className="flex items-start">
                   <span className="text-emerald-400 mr-2">✓</span>
-                  <span className="text-sm">{feature}</span>
+                  <span className="text-sm">{t(`subscription.features.${feature}`) || feature}</span>
                 </li>
               ))}
             </ul>
@@ -179,10 +183,10 @@ export function SubscriptionPage() {
               disabled={loading || plan.id === "free"}
             >
               {plan.id === "free"
-                ? "현재 플랜"
+                ? t("subscription.currentPlan")
                 : loading
-                ? "처리 중..."
-                : "구독하기"}
+                ? t("common.processing")
+                : t("subscription.subscribe")}
             </Button>
           </Card>
         ))}
@@ -190,26 +194,24 @@ export function SubscriptionPage() {
 
       {/* FAQ Section */}
       <div className="mt-16 max-w-3xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-center">자주 묻는 질문</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">{t("subscription.faq.title")}</h2>
         <div className="space-y-4">
           <Card>
-            <h3 className="font-semibold mb-2">언제든지 취소할 수 있나요?</h3>
+            <h3 className="font-semibold mb-2">{t("subscription.faq.cancel.title")}</h3>
             <p className="text-sm text-slate-400">
-              네, 언제든지 구독을 취소할 수 있습니다. 취소 시 다음 결제일까지는
-              프리미엄 기능을 계속 이용하실 수 있습니다.
+              {t("subscription.faq.cancel.answer")}
             </p>
           </Card>
           <Card>
-            <h3 className="font-semibold mb-2">무료 플랜과의 차이는?</h3>
+            <h3 className="font-semibold mb-2">{t("subscription.faq.difference.title")}</h3>
             <p className="text-sm text-slate-400">
-              프리미엄 플랜은 무제한 알림, 고급 분석, 광고 제거 등 더 많은 기능을
-              제공합니다. 무료 플랜은 일일 5개 알림 제한이 있습니다.
+              {t("subscription.faq.difference.answer")}
             </p>
           </Card>
           <Card>
-            <h3 className="font-semibold mb-2">연간 구독의 혜택은?</h3>
+            <h3 className="font-semibold mb-2">{t("subscription.faq.yearly.title")}</h3>
             <p className="text-sm text-slate-400">
-              연간 구독 시 월간 구독 대비 17% 할인된 가격으로 이용하실 수 있습니다.
+              {t("subscription.faq.yearly.answer")}
             </p>
           </Card>
         </div>

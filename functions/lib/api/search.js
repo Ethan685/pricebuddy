@@ -23,12 +23,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchProducts = void 0;
+exports.seedProducts = exports.search = exports.searchProducts = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }
+// Callable function (기존 호환성 유지)
 exports.searchProducts = functions.https.onCall(async (data, context) => {
     const query = data.query || "";
     functions.logger.info("Searching products", { query });
@@ -65,6 +66,337 @@ exports.searchProducts = functions.https.onCall(async (data, context) => {
     catch (error) {
         functions.logger.error("Search failed", error);
         throw new functions.https.HttpsError("internal", "Search failed");
+    }
+});
+// HTTP 엔드포인트 추가 (웹 앱에서 사용)
+exports.search = functions.region("asia-northeast3").https.onRequest(async (req, res) => {
+    // CORS 설정 - 특정 origin 허용
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+        "https://pricebuddy-5a869.web.app",
+        "https://pricebuddy-5a869.firebaseapp.com",
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ];
+    if (origin && allowedOrigins.includes(origin)) {
+        res.set("Access-Control-Allow-Origin", origin);
+    }
+    else {
+        res.set("Access-Control-Allow-Origin", "*");
+    }
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+        res.status(200).send("");
+        return;
+    }
+    if (req.method !== "GET") {
+        res.status(405).json({ error: "Method not allowed" });
+        return;
+    }
+    try {
+        const query = req.query.q || "";
+        const region = req.query.region || "global";
+        functions.logger.info("HTTP Search request", { query, region });
+        if (!query) {
+            res.status(400).json({ error: "Missing query parameter 'q'" });
+            return;
+        }
+        // 1단계: 스크래퍼 서비스에서 실시간 검색 시도
+        const SCRAPER_BASE_URL = process.env.SCRAPER_BASE_URL ||
+            "https://pricebuddy-scraper-206606594412.asia-northeast3.run.app";
+        let scraperResults = [];
+        if (SCRAPER_BASE_URL && SCRAPER_BASE_URL !== "http://localhost:8080") {
+            try {
+                functions.logger.info("Calling scraper service", { url: SCRAPER_BASE_URL, query });
+                const scraperResponse = await fetch(`${SCRAPER_BASE_URL}/search`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        query,
+                        marketplaces: region === "kr" ? ["coupang", "naver"] : ["coupang", "naver", "amazon_us"],
+                        limit: 20
+                    }),
+                });
+                if (scraperResponse.ok) {
+                    const scraperData = await scraperResponse.json();
+                    scraperResults = (scraperData.results || []).map((item) => {
+                        var _a, _b;
+                        return ({
+                            productId: `temp-${Date.now()}-${Math.random()}`,
+                            title: item.title || "",
+                            imageUrl: item.imageUrl || "",
+                            minPriceKrw: item.price ? (item.currency === "KRW" ? item.price : item.price * 1300) : 0,
+                            maxPriceKrw: item.price ? (item.currency === "KRW" ? item.price : item.price * 1300) : 0,
+                            priceChangePct: 0,
+                            url: item.url || ((_a = item.attributes) === null || _a === void 0 ? void 0 : _a.url),
+                            marketplace: item.marketplace || ((_b = item.attributes) === null || _b === void 0 ? void 0 : _b.marketplace),
+                        });
+                    });
+                    functions.logger.info(`Scraper returned ${scraperResults.length} results`);
+                }
+                else {
+                    functions.logger.warn("Scraper service returned error", { status: scraperResponse.status });
+                }
+            }
+            catch (scraperError) {
+                functions.logger.warn("Scraper service call failed, falling back to Firestore", { error: scraperError.message });
+            }
+        }
+        // 2단계: Firestore에서도 검색 (스크래퍼 결과가 없거나 보완)
+        const queryLower = query.toLowerCase();
+        const allProducts = await admin.firestore().collection("products").limit(100).get();
+        const matchingDocs = allProducts.docs.filter(doc => {
+            const data = doc.data();
+            const titleLower = (data.titleLower || data.title || '').toLowerCase();
+            return titleLower.includes(queryLower);
+        });
+        const firestoreResults = matchingDocs.slice(0, 20).map(doc => {
+            const data = doc.data();
+            return {
+                productId: doc.id,
+                title: data.title || "",
+                imageUrl: data.imageUrl,
+                minPriceKrw: data.minPriceKrw || data.price || 0,
+                maxPriceKrw: data.maxPriceKrw || data.price || 0,
+                priceChangePct: data.priceChangePct,
+            };
+        });
+        // 3단계: 결과 병합 (스크래퍼 결과 우선, Firestore 결과 보완)
+        const combinedResults = [...scraperResults, ...firestoreResults];
+        // 중복 제거 (제목 기준)
+        const uniqueResults = combinedResults.reduce((acc, current) => {
+            const exists = acc.find(item => item.title.toLowerCase() === current.title.toLowerCase());
+            if (!exists) {
+                acc.push(current);
+            }
+            return acc;
+        }, []).slice(0, 20);
+        functions.logger.info(`Returning ${uniqueResults.length} results (${scraperResults.length} from scraper, ${firestoreResults.length} from Firestore)`);
+        res.json({
+            query,
+            region,
+            results: uniqueResults,
+        });
+    }
+    catch (error) {
+        functions.logger.error("Search failed", error);
+        res.status(500).json({ error: "Search failed", message: error.message });
+    }
+});
+// 임시: 샘플 데이터 추가 엔드포인트 (개발용)
+exports.seedProducts = functions.region("asia-northeast3").https.onRequest(async (req, res) => {
+    // CORS 설정
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+        "https://pricebuddy-5a869.web.app",
+        "https://pricebuddy-5a869.firebaseapp.com",
+        "http://localhost:5173",
+    ];
+    if (origin && allowedOrigins.includes(origin)) {
+        res.set("Access-Control-Allow-Origin", origin);
+    }
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") {
+        res.status(200).send("");
+        return;
+    }
+    if (req.method !== "POST") {
+        res.status(405).json({ error: "Method not allowed" });
+        return;
+    }
+    try {
+        const IPHONE_PRODUCTS = [
+            {
+                title: "Apple iPhone 15 Pro Max",
+                titleLower: "apple iphone 15 pro max",
+                brand: "Apple",
+                category: "Electronics",
+                imageUrl: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&h=400&fit=crop",
+                minPriceKrw: 1890000,
+                maxPriceKrw: 1990000,
+                priceChangePct: -2.5,
+            },
+            {
+                title: "Apple iPhone 15 Pro",
+                titleLower: "apple iphone 15 pro",
+                brand: "Apple",
+                category: "Electronics",
+                imageUrl: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&h=400&fit=crop",
+                minPriceKrw: 1590000,
+                maxPriceKrw: 1690000,
+                priceChangePct: -1.8,
+            },
+            {
+                title: "Apple iPhone 15",
+                titleLower: "apple iphone 15",
+                brand: "Apple",
+                category: "Electronics",
+                imageUrl: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&h=400&fit=crop",
+                minPriceKrw: 1250000,
+                maxPriceKrw: 1350000,
+                priceChangePct: -3.2,
+            },
+            {
+                title: "Apple iPhone 14 Pro",
+                titleLower: "apple iphone 14 pro",
+                brand: "Apple",
+                category: "Electronics",
+                imageUrl: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&h=400&fit=crop",
+                minPriceKrw: 1390000,
+                maxPriceKrw: 1490000,
+                priceChangePct: -5.1,
+            },
+            {
+                title: "Apple iPhone 13",
+                titleLower: "apple iphone 13",
+                brand: "Apple",
+                category: "Electronics",
+                imageUrl: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&h=400&fit=crop",
+                minPriceKrw: 990000,
+                maxPriceKrw: 1090000,
+                priceChangePct: -7.3,
+            },
+        ];
+        const batch = admin.firestore().batch();
+        for (const product of IPHONE_PRODUCTS) {
+            const ref = admin.firestore().collection("products").doc();
+            batch.set(ref, Object.assign(Object.assign({}, product), { createdAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() }));
+            // 샘플 offers 추가 (실제 URL은 나중에 스크래퍼로 채워짐)
+            // 주의: 가짜 URL이므로 실제로는 스크래퍼에서 가져온 URL을 사용해야 함
+            const sampleOffers = [
+                {
+                    merchant: "Coupang",
+                    merchantName: "Coupang",
+                    marketplace: "coupang",
+                    url: `https://www.coupang.com/np/search?q=${encodeURIComponent(product.title)}`,
+                    price: product.minPriceKrw,
+                    totalPrice: product.minPriceKrw,
+                    currency: "KRW",
+                    shippingFee: 0,
+                    inStock: true,
+                    isPlaceholder: true, // 플레이스홀더 표시
+                },
+                {
+                    merchant: "Naver",
+                    merchantName: "Naver Shopping",
+                    marketplace: "naver",
+                    url: `https://shopping.naver.com/search/all?query=${encodeURIComponent(product.title)}`,
+                    price: product.minPriceKrw + 50000,
+                    totalPrice: product.minPriceKrw + 50000,
+                    currency: "KRW",
+                    shippingFee: 3000,
+                    inStock: true,
+                    isPlaceholder: true, // 플레이스홀더 표시
+                },
+                {
+                    merchant: "Amazon",
+                    merchantName: "Amazon",
+                    marketplace: "amazon_us",
+                    url: `https://www.amazon.com/dp/${ref.id}`,
+                    price: Math.floor(product.minPriceKrw / 1300),
+                    totalPrice: Math.floor(product.minPriceKrw / 1300) + 25,
+                    currency: "USD",
+                    shippingFee: 25,
+                    inStock: true,
+                },
+            ];
+            for (const offer of sampleOffers) {
+                const offerRef = ref.collection("offers").doc();
+                batch.set(offerRef, Object.assign(Object.assign({}, offer), { productId: ref.id, createdAt: admin.firestore.FieldValue.serverTimestamp() }));
+            }
+            // 샘플 가격 히스토리 추가
+            const today = new Date();
+            for (let i = 30; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                const randomFluct = 1 + (Math.random() * 0.1 - 0.05); // ±5% 변동
+                const dailyPrice = Math.floor(product.minPriceKrw * randomFluct);
+                const histRef = ref.collection("price_history").doc(dateStr);
+                batch.set(histRef, {
+                    timestamp: admin.firestore.Timestamp.fromDate(date),
+                    date: dateStr,
+                    price: dailyPrice,
+                    currency: "KRW",
+                    lowestMerchant: "Coupang",
+                });
+            }
+        }
+        await batch.commit();
+        // 기존 제품에 offers 추가
+        const existingProducts = await admin.firestore().collection("products").limit(20).get();
+        const updateBatch = admin.firestore().batch();
+        let offersAdded = 0;
+        for (const productDoc of existingProducts.docs) {
+            const product = productDoc.data();
+            const offersSnap = await productDoc.ref.collection("offers").limit(1).get();
+            // offers가 없으면 추가
+            if (offersSnap.empty) {
+                const sampleOffers = [
+                    {
+                        merchant: "Coupang",
+                        merchantName: "Coupang",
+                        marketplace: "coupang",
+                        url: `https://www.coupang.com/vp/products/${productDoc.id}`,
+                        price: product.minPriceKrw || 1000000,
+                        totalPrice: product.minPriceKrw || 1000000,
+                        currency: "KRW",
+                        shippingFee: 0,
+                        inStock: true,
+                    },
+                    {
+                        merchant: "Naver",
+                        merchantName: "Naver Shopping",
+                        marketplace: "naver",
+                        url: `https://smartstore.naver.com/products/${productDoc.id}`,
+                        price: (product.minPriceKrw || 1000000) + 50000,
+                        totalPrice: (product.minPriceKrw || 1000000) + 50000,
+                        currency: "KRW",
+                        shippingFee: 3000,
+                        inStock: true,
+                    },
+                ];
+                for (const offer of sampleOffers) {
+                    const offerRef = productDoc.ref.collection("offers").doc();
+                    updateBatch.set(offerRef, Object.assign(Object.assign({}, offer), { productId: productDoc.id, createdAt: admin.firestore.FieldValue.serverTimestamp() }));
+                    offersAdded++;
+                }
+                // 가격 히스토리도 추가
+                const histSnap = await productDoc.ref.collection("price_history").limit(1).get();
+                if (histSnap.empty) {
+                    const today = new Date();
+                    for (let i = 30; i >= 0; i--) {
+                        const date = new Date(today);
+                        date.setDate(date.getDate() - i);
+                        const dateStr = date.toISOString().split('T')[0];
+                        const randomFluct = 1 + (Math.random() * 0.1 - 0.05);
+                        const dailyPrice = Math.floor((product.minPriceKrw || 1000000) * randomFluct);
+                        const histRef = productDoc.ref.collection("price_history").doc(dateStr);
+                        updateBatch.set(histRef, {
+                            timestamp: admin.firestore.Timestamp.fromDate(date),
+                            date: dateStr,
+                            price: dailyPrice,
+                            currency: "KRW",
+                            lowestMerchant: "Coupang",
+                        });
+                    }
+                }
+            }
+        }
+        if (offersAdded > 0) {
+            await updateBatch.commit();
+        }
+        res.json({
+            success: true,
+            message: `Added ${IPHONE_PRODUCTS.length} iPhone products and ${offersAdded} offers to existing products`
+        });
+    }
+    catch (error) {
+        functions.logger.error("Seed failed", error);
+        res.status(500).json({ error: "Seed failed", message: error.message });
     }
 });
 //# sourceMappingURL=search.js.map

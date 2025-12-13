@@ -21,6 +21,29 @@ import { updateProductPrices } from "./routes/price-scheduler";
 
 const app = express();
 
+// CORS 설정 (수동 헤더 추가)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    "https://pricebuddy-5a869.web.app",
+    "https://pricebuddy-5a869.firebaseapp.com",
+    "http://localhost:5173",
+    "http://localhost:3000",
+  ];
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
 
 // 루트 경로 핸들러

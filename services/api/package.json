@@ -1,7 +1,7 @@
 {
   "name": "@pricebuddy/api",
   "version": "1.0.0",
-  "main": "./lib/index.js",
+  "main": "./lib/services/api/src/index.js",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -11,11 +11,13 @@
   "dependencies": {
     "express": "^4.18.2",
     "firebase-admin": "^12.0.0",
-    "firebase-functions": "^4.5.0"
+    "firebase-functions": "^4.5.0",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.0.0",
+    "@types/cors": "^2.8.13",
     "typescript": "^5.6.0"
   },
   "engines": {

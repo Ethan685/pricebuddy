@@ -1,5 +1,6 @@
 import fastify from "fastify";
 import { scrapeOffer } from "./scrape";
+import { searchMultipleMarketplaces } from "./search";
 
 const app = fastify({ logger: true });
 
@@ -11,6 +12,22 @@ app.post("/scrape", async (req, res) => {
       url: body.url,
     });
     return out;
+  } catch (error: any) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+app.post("/search", async (req, res) => {
+  try {
+    const body = req.body as { query: string; marketplaces?: string[]; limit?: number };
+    const { query, marketplaces = ["coupang", "naver"], limit = 20 } = body;
+    
+    if (!query) {
+      return res.status(400).send({ error: "Query is required" });
+    }
+
+    const results = await searchMultipleMarketplaces(query, marketplaces, limit);
+    return { query, results };
   } catch (error: any) {
     res.status(500).send({ error: error.message });
   }

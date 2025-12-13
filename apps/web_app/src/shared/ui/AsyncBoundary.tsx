@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { SkeletonPage } from "./Skeleton";
 import { ErrorState } from "./ErrorState";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 interface AsyncBoundaryProps {
   isLoading: boolean;
@@ -19,6 +20,8 @@ export function AsyncBoundary({
   errorFallback,
   onRetry,
 }: AsyncBoundaryProps) {
+  const { t } = useLanguage();
+  
   if (isLoading) {
     return <>{fallback || <SkeletonPage />}</>;
   }
@@ -27,7 +30,7 @@ export function AsyncBoundary({
     return (
       <>
         {errorFallback?.(error) || (
-          <ErrorState message="잠시 후 다시 시도해 주세요." onRetry={onRetry} />
+          <ErrorState message={t("common.error.retryLater")} onRetry={onRetry} />
         )}
       </>
     );

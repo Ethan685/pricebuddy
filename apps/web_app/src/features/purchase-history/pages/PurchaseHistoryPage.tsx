@@ -1,147 +1,109 @@
-import { useState, useEffect } from "react";
 import { Card } from "@/shared/ui/Card";
 import { formatKrw } from "@/shared/lib/money";
 import { formatDateTime } from "@/shared/lib/datetime";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
+import { usePurchases } from "../api/usePurchases";
+import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
+import { SkeletonPage } from "@/shared/ui/Skeleton";
 import { Link } from "react-router-dom";
-
-interface Purchase {
-  id: string;
-  productId: string;
-  productTitle: string;
-  purchasePrice: number;
-  expectedPrice: number;
-  savedAmount: number;
-  marketplace: string;
-  purchasedAt: string;
-}
-
-// Mock 데이터
-const mockPurchases: Purchase[] = [
-  {
-    id: "1",
-    productId: "1",
-    productTitle: "Apple iPhone 17 Pro 256GB",
-    purchasePrice: 1590000,
-    expectedPrice: 1890000,
-    savedAmount: 300000,
-    marketplace: "coupang",
-    purchasedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "2",
-    productId: "2",
-    productTitle: "Samsung Galaxy S24 Ultra 512GB",
-    purchasePrice: 1290000,
-    expectedPrice: 1490000,
-    savedAmount: 200000,
-    marketplace: "naver",
-    purchasedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 export function PurchaseHistoryPage() {
   const { user } = useAuthContext();
-  const [purchases] = useState(mockPurchases);
-  const [totalSaved, setTotalSaved] = useState(0);
+  const { t } = useLanguage();
+  const { data, isLoading, error } = usePurchases(user?.uid);
 
-  useEffect(() => {
-    const saved = purchases.reduce((sum, p) => sum + p.savedAmount, 0);
-    setTotalSaved(saved);
-  }, [purchases]);
+  const purchases = data?.purchases || [];
+  const totalSaved = data?.totalSaved || 0;
+  const averageSavedPercent = data?.averageSavedPercent || 0;
 
   if (!user) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-400 mb-4">로그인이 필요합니다.</p>
-        <a href="/login" className="text-emerald-400 hover:underline">
-          로그인하기
-        </a>
+        <p className="text-slate-400 mb-4">{t("auth.loginRequired")}</p>
+        <Link to="/login" className="text-emerald-400 hover:underline">
+          {t("auth.loginButton")}
+        </Link>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">구매 히스토리</h1>
-        <p className="text-slate-400">
-          PriceBuddy를 통해 절약한 금액을 확인하세요.
-        </p>
-      </div>
-
-      {/* Summary Card */}
-      <Card className="mb-6 bg-gradient-to-r from-emerald-900/20 to-blue-900/20 border-emerald-500/40">
-        <div className="grid grid-cols-3 gap-4 text-center py-6">
-          <div>
-            <div className="text-sm text-slate-400 mb-1">총 구매 횟수</div>
-            <div className="text-2xl font-bold">{purchases.length}건</div>
-          </div>
-          <div>
-            <div className="text-sm text-slate-400 mb-1">총 절약 금액</div>
-            <div className="text-2xl font-bold text-emerald-400">
-              {formatKrw(totalSaved)}
-            </div>
-          </div>
-          <div>
-            <div className="text-sm text-slate-400 mb-1">평균 절약율</div>
-            <div className="text-2xl font-bold">
-              {purchases.length > 0
-                ? `${Math.round(
-                    (totalSaved /
-                      purchases.reduce((sum, p) => sum + p.expectedPrice, 0)) *
-                      100
-                  )}%`
-                : "0%"}
-            </div>
-          </div>
+    <AsyncBoundary isLoading={isLoading} error={error}>
+      <div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">{t("purchases.title")}</h1>
+          <p className="text-slate-400">
+            {t("purchases.subtitle")}
+          </p>
         </div>
-      </Card>
 
-      {/* Purchase List */}
-      {purchases.length === 0 ? (
-        <Card className="text-center py-12">
-          <div className="text-4xl mb-4">🛒</div>
-          <p className="text-slate-400 mb-4">구매 기록이 없습니다.</p>
-          <Link to="/search">
-            <button className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">
-              상품 검색하기
-            </button>
-          </Link>
+        {/* Summary Card */}
+        <Card className="mb-6 bg-gradient-to-r from-emerald-900/20 to-blue-900/20 border-emerald-500/40">
+          <div className="grid grid-cols-3 gap-4 text-center py-6">
+            <div>
+              <div className="text-sm text-slate-400 mb-1">{t("purchases.stats.totalCount")}</div>
+              <div className="text-2xl font-bold">{purchases.length}{t("purchases.stats.countUnit")}</div>
+            </div>
+            <div>
+              <div className="text-sm text-slate-400 mb-1">{t("purchases.stats.totalSaved")}</div>
+              <div className="text-2xl font-bold text-emerald-400">
+                {formatKrw(totalSaved)}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-slate-400 mb-1">{t("purchases.stats.averageSaved")}</div>
+              <div className="text-2xl font-bold text-emerald-400">
+                {averageSavedPercent > 0 ? averageSavedPercent.toFixed(1) : "0"}%
+              </div>
+            </div>
+          </div>
         </Card>
-      ) : (
-        <div className="space-y-4">
-          {purchases.map((purchase) => (
-            <Link key={purchase.id} to={`/products/${purchase.productId}`}>
-              <Card className="hover:border-emerald-500/40 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg mb-2">
-                      {purchase.productTitle}
-                    </h3>
-                    <div className="flex items-center gap-4 text-sm text-slate-400">
-                      <span>{purchase.marketplace}</span>
-                      <span>{formatDateTime(purchase.purchasedAt)}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-slate-400 text-sm line-through mb-1">
-                      {formatKrw(purchase.expectedPrice)}
-                    </div>
-                    <div className="text-emerald-400 font-bold text-lg mb-1">
-                      {formatKrw(purchase.purchasePrice)}
-                    </div>
-                    <div className="text-emerald-400 text-sm font-semibold">
-                      절약: {formatKrw(purchase.savedAmount)}
-                    </div>
-                  </div>
-                </div>
-              </Card>
+
+        {/* Purchase List */}
+        {purchases.length === 0 ? (
+          <Card className="text-center py-12">
+            <div className="text-4xl mb-4">🛒</div>
+            <p className="text-slate-400 mb-4">{t("purchases.empty")}</p>
+            <Link to="/search">
+              <button className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">
+                {t("wishlist.searchButton")}
+              </button>
             </Link>
-          ))}
-        </div>
-      )}
-    </div>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {purchases.map((purchase) => (
+              <Link key={purchase.id} to={`/products/${purchase.productId}`}>
+                <Card className="hover:border-emerald-500/40 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg mb-2">
+                        {purchase.productTitle}
+                      </h3>
+                      <div className="flex items-center gap-4 text-sm text-slate-400">
+                        <span>{purchase.marketplace}</span>
+                        <span>{formatDateTime(purchase.purchasedAt)}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-slate-400 text-sm line-through mb-1">
+                        {formatKrw(purchase.originalPrice || purchase.purchasePrice)}
+                      </div>
+                      <div className="text-emerald-400 font-bold text-lg mb-1">
+                        {formatKrw(purchase.purchasePrice)}
+                      </div>
+                      <div className="text-emerald-400 text-sm font-semibold">
+                        {t("purchases.saved")}: {formatKrw(purchase.savedAmount)}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </AsyncBoundary>
   );
 }
-

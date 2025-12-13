@@ -1,21 +1,8 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
+// 임시로 비활성화 (Firebase Functions 배포를 위해)
+// export * from "./pricing-engine";
+// export * from "./forex/rates-store";
+// export * from "./data/tax-rules";
+// export * from "./data/shipping-rules";
 Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(require("./pricing-engine"), exports);
-__exportStar(require("./forex/rates-store"), exports);
-__exportStar(require("./data/tax-rules"), exports);
-__exportStar(require("./data/shipping-rules"), exports);
 //# sourceMappingURL=index.js.map

@@ -29,8 +29,38 @@ export const scraperClient = {
     return res.json();
   },
   async search(query: string, region: string) {
-    // TODO: 실제 검색 구현
-    return [];
+    // Scraper 서비스가 배포되기 전까지는 Firestore에서 검색
+    try {
+      const { firestore } = await import("../lib/firestore");
+      const admin = await import("firebase-admin");
+      
+      const productsRef = firestore.collection("products");
+      // 제목에 검색어가 포함된 제품 검색
+      const snapshot = await productsRef
+        .where("title", ">=", query)
+        .where("title", "<=", query + "\uf8ff")
+        .orderBy("title")
+        .limit(20)
+        .get();
+      
+      const results = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          productId: doc.id,
+          title: data.title || "",
+          imageUrl: data.imageUrl,
+          minPriceKrw: data.minPriceKrw || 0,
+          maxPriceKrw: data.maxPriceKrw || 0,
+          priceChangePct: data.priceChangePct,
+        };
+      });
+      
+      return results;
+    } catch (error) {
+      console.error("Search error:", error);
+      // 오류 발생 시 빈 배열 반환 (Scraper 서비스 배포 전까지는 정상)
+      return [];
+    }
   },
 };
 

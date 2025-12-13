@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Language, getLanguage, setLanguage as setLang, t, SUPPORTED_LANGUAGES } from "../lib/i18n";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from "react";
+import { Language, getLanguage, setLanguage as setLang, translations, SUPPORTED_LANGUAGES } from "../lib/i18n";
 
 interface LanguageContextType {
   language: Language;
@@ -16,7 +16,20 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const handleSetLanguage = (lang: Language) => {
     setLang(lang);
     setLanguageState(lang);
+    document.documentElement.lang = lang;
   };
+
+  // 현재 언어에 맞는 t 함수 생성
+  const t = useMemo(() => {
+    return (key: string): string => {
+      return translations[language]?.[key] || translations.ko[key] || key;
+    };
+  }, [language]);
+
+  // 초기 언어 설정
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   return (
     <LanguageContext.Provider

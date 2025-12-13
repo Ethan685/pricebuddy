@@ -17,8 +17,8 @@ interface SearchResponse {
   results: SearchResultItem[];
 }
 
-// 개발 모드에서 mock 데이터 사용
-const USE_MOCK_DATA = import.meta.env.DEV;
+// 프로덕션에서는 항상 실제 API 사용
+const USE_MOCK_DATA = false; // import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL;
 
 export function useSearch(query: string, region: string) {
   return useQuery<SearchResponse>({

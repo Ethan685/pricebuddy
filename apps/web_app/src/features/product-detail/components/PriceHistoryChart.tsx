@@ -1,11 +1,13 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card } from "@/shared/ui/Card";
+import { useLanguage } from "@/shared/context/LanguageContext";
 
 interface PriceHistoryChartProps {
   data: { ts: string; totalPriceKrw: number }[];
 }
 
 export function PriceHistoryChart({ data }: PriceHistoryChartProps) {
+  const { t } = useLanguage();
   const chartData = data.map((d) => ({
     date: new Date(d.ts).toLocaleDateString("ko-KR"),
     price: d.totalPriceKrw,
@@ -13,7 +15,7 @@ export function PriceHistoryChart({ data }: PriceHistoryChartProps) {
 
   return (
     <Card>
-      <h3 className="text-lg font-semibold mb-4">가격 히스토리</h3>
+      <h3 className="text-lg font-semibold mb-4">{t("product.priceHistory")}</h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
