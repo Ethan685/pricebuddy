@@ -1,9 +1,14 @@
-import { Marketplace } from "./marketplace";
+import type { Marketplace } from "./marketplace";
 
-export function generateAffiliateLink(url: string): string {
-  return url;
-}
+export async function generateAffiliateLink(
+  marketplace: Marketplace,
+  url: string,
+  userId?: string
+): Promise<string> {
+  const u = new URL(url);
 
-export function buildAffiliateUrl(url: string): string {
-  return generateAffiliateLink(url);
+  if (userId) u.searchParams.set("pb_uid", userId);
+  u.searchParams.set("pb_src", String(marketplace));
+
+  return u.toString();
 }
