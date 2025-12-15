@@ -141,3 +141,7 @@ export const updateProductPrices = functions
     }
   });
 
+
+export async function runPriceSchedulerOnce() {
+  // TODO: move the existing scheduler logic here
+}

@@ -1,5 +1,10 @@
+import { runPriceSchedulerOnce } from "../routes/price-scheduler";
+
 async function main() {
-  console.log("scrape_jobs: start");
-  console.log("scrape_jobs: done");
+  await runPriceSchedulerOnce();
 }
-main().catch((e) => { console.error(e); process.exit(1); });
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
