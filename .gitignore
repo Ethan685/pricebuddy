@@ -82,3 +82,4 @@ apps/**/.vite/
 apps/**/.turbo/
 # flutter generated
 flutter_app/macos/Flutter/GeneratedPluginRegistrant.swift
+!services/api/src/lib/**

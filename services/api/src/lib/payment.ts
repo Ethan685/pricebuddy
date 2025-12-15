@@ -17,13 +17,11 @@ export type SubscriptionPaymentResult = {
 export async function requestSubscriptionPayment(
   req: SubscriptionPaymentRequest
 ): Promise<SubscriptionPaymentResult> {
-  const paymentId = `pay_${Date.now()}`;
-  const transactionId = `tx_${Date.now()}`;
-
   if (!req.userId || !req.planId) {
     return { success: false, error: "missing userId/planId" };
   }
-
+  const paymentId = `pay_${Date.now()}`;
+  const transactionId = `tx_${Date.now()}`;
   return { success: true, paymentId, transactionId };
 }
 

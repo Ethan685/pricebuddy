@@ -9,7 +9,8 @@ export function detectMarketplaceFromUrl(url: string): Marketplace {
   if (u.includes("smartstore.naver.com") || u.includes("naver.com")) return "naver" as Marketplace;
 
   if (u.includes("amazon.co.jp")) return "amazon_jp" as Marketplace;
-  if (u.includes("amazon.com")) return "amazon_us" as Marketplace;
+  if (u.includes("amazon.ca")) return "amazon_ca" as Marketplace;
+  if (u.includes("amazon.")) return "amazon_us" as Marketplace;
 
   if (u.includes("aliexpress.com")) return "aliexpress" as Marketplace;
   if (u.includes("ebay.")) return "ebay" as Marketplace;
