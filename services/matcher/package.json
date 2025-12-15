@@ -1,16 +1,18 @@
 {
-    "name": "@pricebuddy/matcher",
-    "version": "1.0.0",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "scripts": {
-        "build": "tsc"
-    },
-    "dependencies": {
-        "@pricebuddy/core": "file:../../libs/core",
-        "@xenova/transformers": "^2.13.0"
-    },
-    "devDependencies": {
-        "typescript": "^4.9.0"
-    }
+  "name": "@pricebuddy/matcher",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@pricebuddy/core": "file:../../libs/core",
+    "@xenova/transformers": "^2.13.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.0"
+  }
 }

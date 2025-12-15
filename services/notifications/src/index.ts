@@ -1,4 +1,5 @@
 import * as functions from "firebase-functions";
+import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { firestore } from "@pricebuddy/infra/firestore";
 import { logger } from "@pricebuddy/infra/logger";
 import { sendEmail, createPriceAlertEmail } from "./email";
@@ -22,10 +23,7 @@ export const checkPriceAlerts = functions
         .where("notificationEnabled", "==", true)
         .get();
 
-      const alerts = alertsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const alerts = alertsSnap.docs.map((doc) => { const alert = doc.data() as PriceAlert; return alert; });
 
       logger.info(`Found ${alerts.length} active alerts`);
 
@@ -46,22 +44,15 @@ export const checkPriceAlerts = functions
 
           // 알림 조건 확인
           let shouldNotify = false;
-          if (alert.condition === "below" && currentPrice <= alert.targetPrice) {
+          const cond = (String((alert as any).condition || "")).toUpperCase() as "BELOW" | "ABOVE";
+          const prevPrice = (alert as any).currentPrice ?? currentPrice;
+          if (cond === "BELOW" && currentPrice <= (alert as any).targetPrice) {
             shouldNotify = true;
-          } else if (
-            alert.condition === "above" &&
-            currentPrice >= alert.targetPrice
-          ) {
+          } else if (cond === "ABOVE" && currentPrice >= (alert as any).targetPrice) {
             shouldNotify = true;
-          } else if (
-            alert.condition === "change" &&
-            Math.abs(currentPrice - alert.currentPrice) / alert.currentPrice >
-              0.05
-          ) {
-            // 5% 이상 변동
+          } else if (prevPrice > 0 && Math.abs(currentPrice - prevPrice) / prevPrice > 0.05) {
             shouldNotify = true;
           }
-
           if (shouldNotify) {
             // 알림 발송
             await sendPriceAlert(alert, currentPrice, bestOffer);
@@ -142,3 +133,4 @@ async function sendPriceAlert(
   }
 }
 
+import type { PriceAlert } from "@pricebuddy/core";

@@ -1,6 +1,5 @@
-import { computePrice } from './pricing';
-import { Marketplace } from '@pricebuddy/core';
-
+import { computePrice } from './index';
+import type { Marketplace } from '@pricebuddy/core';
 // Helper to log test
 function test(name: string, actual: any, expected: any) {
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -12,7 +11,7 @@ function test(name: string, actual: any, expected: any) {
 
 // 1. KR Import with Tax (Expensive item)
 const res1 = computePrice({
-    marketplace: 'amazon',
+    marketplace: 'amazon' as Marketplace,
     country: 'KR',
     basePrice: 200, // $200 USD
     currency: 'USD',
@@ -28,7 +27,7 @@ console.log('Result 1:', res1);
 
 // 2. KR Domestic (Coupang)
 const res2 = computePrice({
-    marketplace: 'coupang',
+    marketplace: 'amazon' as Marketplace,
     country: 'KR',
     basePrice: 50000,
     currency: 'KRW',

@@ -2,14 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.logger = void 0;
 exports.logger = {
-    info: (message, ...args) => {
-        console.log(`[INFO] ${message}`, ...args);
-    },
-    error: (message, ...args) => {
-        console.error(`[ERROR] ${message}`, ...args);
-    },
-    warn: (message, ...args) => {
-        console.warn(`[WARN] ${message}`, ...args);
-    },
+    info: (...args) => console.log("[INFO]", ...args),
+    warn: (...args) => console.warn("[WARN]", ...args),
+    error: (...args) => console.error("[ERROR]", ...args),
 };
 //# sourceMappingURL=logger.js.map
