@@ -96,6 +96,7 @@ export const api = functions
 // 스케줄러 함수들 export
 export { updateProductPrices } from "./routes/price-scheduler";
 export { autoUpdateScrapers } from "./routes/scraper-auto-update";
+export { processScrapeJobs } from "./scheduled/processJobs";
 
 // Notifications 서비스의 스케줄러는 별도로 export
 // services/notifications/src/index.ts에서 직접 배포

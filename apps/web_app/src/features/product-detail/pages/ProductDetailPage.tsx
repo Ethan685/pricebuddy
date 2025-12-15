@@ -5,6 +5,7 @@ import { PriceCard } from "../components/PriceCard";
 import { PriceHistoryChart } from "../components/PriceHistoryChart";
 import { PriceAlertButton } from "../components/PriceAlertButton";
 import { ShareButton } from "../components/ShareButton";
+import { TotalCostCalculator } from "../components/TotalCostCalculator";
 import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
 import { Button } from "@/shared/ui/Button";
 import { useState } from "react";
@@ -39,7 +40,7 @@ function ProductDetailContent({ data }: { data: any }) {
       alert(t("product.tracking.noOffers"));
       return;
     }
-    
+
     setIsTracking(true);
     setTrackingStatus("idle");
     try {
@@ -50,10 +51,10 @@ function ProductDetailContent({ data }: { data: any }) {
         marketplace: firstOffer.marketplace,
         productId: product.id,
       });
-      
+
       setTrackingStatus("success");
       console.log("Price tracking started:", result);
-      
+
       // 성공 메시지 표시
       setTimeout(() => {
         setTrackingStatus("idle");
@@ -62,7 +63,7 @@ function ProductDetailContent({ data }: { data: any }) {
       console.error("Failed to start tracking:", error);
       setTrackingStatus("error");
       alert(t("product.tracking.failed"));
-      
+
       setTimeout(() => {
         setTrackingStatus("idle");
       }, 3000);
@@ -120,11 +121,11 @@ function ProductDetailContent({ data }: { data: any }) {
             disabled={isTracking || !offers || offers.length === 0}
             className="w-full"
           >
-            {isTracking 
-              ? t("product.tracking.inProgress") 
+            {isTracking
+              ? t("product.tracking.inProgress")
               : trackingStatus === "success"
-              ? t("product.tracking.started")
-              : t("product.tracking.start")
+                ? t("product.tracking.started")
+                : t("product.tracking.start")
             }
           </Button>
           {trackingStatus === "success" && (
@@ -148,15 +149,38 @@ function ProductDetailContent({ data }: { data: any }) {
         {/* Price History & Forecast */}
         {history && history.length > 0 && <PriceHistoryChart data={history} />}
 
-        {/* Offers 리스트 */}
+        {/* Truth Engine: Total Cost Breakdown */}
+        {offers && offers.length > 0 && (
+          <div className="space-y-4 mb-6">
+            <h2 className="text-xl font-display font-bold text-textMain">{t("product.truthEngine.title") || "💸 The Real Price (Truth Engine)"}</h2>
+            <TotalCostCalculator
+              basePrice={offers[0].price || 0}
+              shipping={offers[0].shippingFee || 0}
+              tax={offers[0].tax || 0}
+              duty={offers[0].duty || 0}
+              currency={offers[0].currency || "KRW"}
+            />
+          </div>
+        )}
+
+        {/* Offers Comparison */}
         <div className="space-y-2">
-          <h2 className="text-lg font-semibold mb-2">{t("product.priceComparison")}</h2>
+          <h2 className="text-lg font-semibold mb-2 text-textMain">{t("product.priceComparison")}</h2>
           {offers && offers.length > 0 ? (
-            offers.map((offer: any) => (
-              <PriceCard key={offer.id} offer={offer} />
-            ))
+            <div className="flex overflow-x-auto md:block space-x-4 md:space-x-0 md:space-y-3 pb-4 md:pb-0 snap-x hide-scrollbar">
+              {offers.map((offer: any, index: number) => (
+                <div key={offer.id} className={`min-w-[280px] md:min-w-0 snap-center transform transition-all duration-300 ${index === 0 ? 'scale-[1.02] ring-2 ring-primary shadow-neon-blue/20 rounded-xl z-10' : ''}`}>
+                  <PriceCard offer={offer} />
+                  {index === 0 && (
+                    <div className="absolute -top-3 -right-2 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg z-20">
+                      BEST CHOICE
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           ) : (
-            <div className="text-slate-400 text-center py-4">{t("product.noPriceInfo")}</div>
+            <div className="text-textMuted text-center py-4">{t("product.noPriceInfo")}</div>
           )}
         </div>
       </div>

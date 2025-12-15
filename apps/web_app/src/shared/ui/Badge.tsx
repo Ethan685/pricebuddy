@@ -8,10 +8,10 @@ interface BadgeProps {
 
 export function Badge({ children, variant = "default", className = "" }: BadgeProps) {
   const variantClasses = {
-    default: "bg-slate-700 text-slate-200",
-    success: "bg-emerald-600 text-white",
-    warning: "bg-yellow-600 text-white",
-    error: "bg-red-600 text-white",
+    default: "bg-surfaceHighlight text-textMuted border border-border",
+    success: "bg-success/20 text-successNeon border border-success/30",
+    warning: "bg-warning/20 text-warning border border-warning/30",
+    error: "bg-danger/20 text-dangerNeon border border-danger/30",
   };
 
   return (

@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { firestore } from "../lib/firestore";
 import { pricingClient } from "../clients/pricing-client";
-import type { Marketplace } from "@pricebuddy/core";
+import { getDailyHistory } from "../repositories/getHistory";
+import type { Marketplace, ProductDetailResponse, ProductDTO, OfferDTO, PriceHistoryPointDTO, AISignalDTO } from "@pricebuddy/core";
 
 export const productDetailRouter = Router();
 
@@ -23,7 +24,19 @@ productDetailRouter.get(
         return res.status(404).json({ error: "Product not found" });
       }
 
-      const product = productSnap.data();
+      const productData = productSnap.data();
+      if (!productData) {
+        return res.status(404).json({ error: "Product data not found" });
+      }
+
+      const product: ProductDTO = {
+        id: productId,
+        title: productData.title ?? "",
+        brand: productData.brand,
+        imageUrl: productData.imageUrl,
+        categoryPath: productData.categoryPath ?? [],
+        attributes: productData.attributes ?? {},
+      };
 
       // 해당 product의 offers 가져오기
       const offersSnap = await firestore
@@ -31,43 +44,76 @@ productDetailRouter.get(
         .where("productId", "==", productId)
         .get();
 
-      const offers = offersSnap.docs.map((d: any) => d.data());
-
       // 가격 엔진 재계산 (나라/선호 통화에 맞춰)
-      // 쿼리 파라미터에서 country 가져오기, 없으면 기본값 KR
       const country = (req.query.country as string) || "KR";
-      const pricedOffers = offers.map((o: any) =>
-        pricingClient.compute(
+      const offers: OfferDTO[] = offersSnap.docs.map((doc) => {
+        const o = doc.data();
+        const marketplace = o.marketplace as Marketplace;
+        const computed = pricingClient.compute(
           {
-            marketplace: o.marketplace,
-            country: o.country || country, // offer에 저장된 country 우선, 없으면 쿼리 파라미터 사용
-            basePrice: o.basePrice,
-            currency: o.currency,
-            weightKg: o.weightKg || 1,
+            marketplace,
+            country: o.country || country,
+            basePrice: o.basePrice ?? 0,
+            currency: o.currency ?? "KRW",
+            weightKg: o.weightKg ?? 1,
           },
-          o // 원 offer merge
-        )
-      );
+          o
+        );
 
-      // 가격 히스토리 가져오기
-      const historySnap = await firestore
-        .collection("price_history")
-        .where("productId", "==", productId)
-        .orderBy("timestamp", "desc")
-        .limit(30)
-        .get();
+        return {
+          id: doc.id,
+          productId: o.productId ?? productId,
+          marketplace,
+          url: o.url ?? "",
+          externalId: o.externalId ?? "",
+          basePrice: o.basePrice ?? 0,
+          currency: (o.currency ?? "KRW") as "KRW" | "USD" | "JPY" | "EUR",
+          itemPriceKrw: computed.itemPriceKrw ?? 0,
+          shippingFeeKrw: computed.shippingFeeKrw ?? 0,
+          taxFeeKrw: computed.taxFeeKrw ?? 0,
+          totalPriceKrw: computed.totalPriceKrw ?? 0,
+          lastFetchedAt: o.lastFetchedAt ?? new Date().toISOString(),
+        };
+      });
 
-      const history = historySnap.docs.map((doc: any) => ({
-        ts: doc.data().timestamp,
-        totalPriceKrw: doc.data().priceKrw,
-      }));
+      // 가격 히스토리 가져오기 (새로운 구조: price_history_daily)
+      // 각 offer의 히스토리를 가져와서 병합
+      let historyDaily: PriceHistoryPointDTO[] = [];
+      
+      if (offers.length > 0) {
+        // 첫 번째 offer의 히스토리 사용 (또는 모든 offer의 히스토리 병합 가능)
+        const firstOfferId = offers[0].id;
+        try {
+          historyDaily = await getDailyHistory(firstOfferId, 30);
+        } catch (e) {
+          console.warn(`Failed to fetch history for offer ${firstOfferId}:`, e);
+          // Fallback: 기존 price_history 컬렉션 사용
+          const historySnap = await firestore
+            .collection("price_history")
+            .where("productId", "==", productId)
+            .orderBy("timestamp", "desc")
+            .limit(30)
+            .get()
+            .catch(() => null);
+          
+          if (historySnap) {
+            historyDaily = historySnap.docs.map((doc) => {
+              const data = doc.data();
+              return {
+                ts: data.timestamp ?? new Date().toISOString(),
+                totalPriceKrw: data.priceKrw ?? 0,
+              };
+            });
+          }
+        }
+      }
 
       // AI 신호 (간단한 로직 - 실제로는 별도 서비스)
-      let aiSignal: { label: "BUY" | "WAIT"; confidence: number; reason: string } | null = null;
-      if (history.length >= 7) {
-        const recentPrices = history.slice(0, 7).map((h: any) => h.totalPriceKrw);
-        const avgPrice = recentPrices.reduce((a: number, b: number) => a + b, 0) / recentPrices.length;
-        const currentPrice = pricedOffers[0]?.totalPriceKrw || avgPrice;
+      let aiSignal: AISignalDTO | undefined = undefined;
+      if (historyDaily.length >= 7) {
+        const recentPrices = historyDaily.slice(0, 7).map((h) => h.totalPriceKrw);
+        const avgPrice = recentPrices.reduce((a, b) => a + b, 0) / recentPrices.length;
+        const currentPrice = offers[0]?.totalPriceKrw || avgPrice;
         const priceChange = ((currentPrice - avgPrice) / avgPrice) * 100;
 
         if (priceChange < -10) {
@@ -82,10 +128,23 @@ productDetailRouter.get(
             confidence: 0.75,
             reason: `최근 가격이 ${priceChange.toFixed(1)}% 상승했습니다. 잠시 기다리는 것을 추천합니다.`,
           };
+        } else {
+          aiSignal = {
+            label: "NEUTRAL",
+            confidence: 0.5,
+            reason: "가격 변동이 크지 않습니다.",
+          };
         }
       }
 
-      res.json({ product, offers: pricedOffers, history, aiSignal });
+      const payload: ProductDetailResponse = {
+        product,
+        offers,
+        historyDaily: historyDaily.length > 0 ? historyDaily : undefined,
+        aiSignal,
+      };
+
+      res.json(payload);
     } catch (e) {
       next(e);
     }

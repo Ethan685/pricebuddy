@@ -6,3 +6,9 @@ export * from "./domain/wallet";
 export * from "./domain/alert";
 export * from "./domain/deal";
 
+// API types
+export * from "./api/http";
+export * from "./api/search";
+export * from "./api/product-detail";
+export * from "./api/ext";
+

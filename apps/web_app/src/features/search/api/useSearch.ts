@@ -1,26 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { httpGet } from "@/shared/lib/http";
 import { mockSearchResults } from "./mockData";
-
-export interface SearchResultItem {
-  productId: string;
-  title: string;
-  imageUrl?: string;
-  minPriceKrw: number;
-  maxPriceKrw: number;
-  priceChangePct?: number;
-}
-
-interface SearchResponse {
-  query: string;
-  region: string;
-  results: SearchResultItem[];
-}
+import type { SearchResponse, RegionMode, SearchResultItem } from "@pricebuddy/core";
 
 // 프로덕션에서는 항상 실제 API 사용
 const USE_MOCK_DATA = false; // import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL;
 
-export function useSearch(query: string, region: string) {
+export function useSearch(query: string, region: RegionMode) {
   return useQuery<SearchResponse>({
     queryKey: ["search", query, region],
     queryFn: async () => {
@@ -40,9 +26,16 @@ export function useSearch(query: string, region: string) {
         });
         
         // 쿼리가 비어있거나 "iphone" 관련이면 모든 결과 반환
-        const results = normalizedQuery.length === 0 || normalizedQuery.includes("iphone")
+        const results: SearchResultItem[] = (normalizedQuery.length === 0 || normalizedQuery.includes("iphone")
           ? mockSearchResults
-          : filtered;
+          : filtered).map((item) => ({
+          productId: item.productId,
+          title: item.title,
+          imageUrl: item.imageUrl,
+          minTotalPriceKrw: item.minTotalPriceKrw,
+          maxTotalPriceKrw: item.maxTotalPriceKrw,
+          priceChangePct7d: item.priceChangePct7d,
+        }));
         
         return {
           query,
@@ -50,7 +43,7 @@ export function useSearch(query: string, region: string) {
           results,
         };
       }
-      return httpGet("/search", { q: query, region });
+      return httpGet<SearchResponse>("/search", { q: query, region });
     },
     enabled: !!query,
     retry: USE_MOCK_DATA ? false : 1, // Mock 모드에서는 재시도 안 함

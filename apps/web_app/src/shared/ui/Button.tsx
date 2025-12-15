@@ -6,10 +6,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({ children, variant = "primary", className = "", ...props }: ButtonProps) {
-  const baseClasses = "px-4 py-2 rounded-lg font-medium transition-colors";
+  const baseClasses = "px-4 py-2 rounded-lg font-medium transition-colors duration-200";
   const variantClasses = {
-    primary: "bg-emerald-600 hover:bg-emerald-700 text-white",
-    secondary: "bg-slate-700 hover:bg-slate-600 text-white",
+    primary: "bg-primary hover:bg-primaryHover text-white shadow-neon-blue",
+    secondary: "bg-surfaceHighlight hover:bg-border text-textMain border border-border",
   };
 
   return (

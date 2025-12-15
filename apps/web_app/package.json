@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@pricebuddy/core": "workspace:*",
     "@tanstack/react-query": "^5.17.0",
     "firebase": "^10.7.0",
     "react": "^19.0.0",

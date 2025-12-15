@@ -1,6 +1,6 @@
-import { ProductDetail } from "./useProductDetail";
+import type { ProductDetailResponse } from "@pricebuddy/core";
 
-export const mockProductDetail: ProductDetail = {
+export const mockProductDetail: ProductDetailResponse = {
   product: {
     id: "1",
     title: "Apple iPhone 17 Pro 256GB",
@@ -21,9 +21,6 @@ export const mockProductDetail: ProductDetail = {
       url: "https://www.coupang.com/vp/products/123456",
       basePrice: 1590000,
       currency: "KRW",
-      shippingFee: 0,
-      taxFee: 0,
-      otherFee: 0,
       totalPriceKrw: 1590000,
       itemPriceKrw: 1590000,
       shippingFeeKrw: 0,
@@ -38,9 +35,6 @@ export const mockProductDetail: ProductDetail = {
       url: "https://smartstore.naver.com/products/789012",
       basePrice: 1650000,
       currency: "KRW",
-      shippingFee: 3000,
-      taxFee: 0,
-      otherFee: 0,
       totalPriceKrw: 1653000,
       itemPriceKrw: 1650000,
       shippingFeeKrw: 3000,
@@ -55,9 +49,6 @@ export const mockProductDetail: ProductDetail = {
       url: "https://www.amazon.co.jp/dp/345678",
       basePrice: 120000,
       currency: "JPY",
-      shippingFee: 7000,
-      taxFee: 0,
-      otherFee: 0,
       totalPriceKrw: 1680000,
       itemPriceKrw: 1080000,
       shippingFeeKrw: 7000,
@@ -65,7 +56,7 @@ export const mockProductDetail: ProductDetail = {
       lastFetchedAt: new Date().toISOString(),
     },
   ],
-  history: [
+  historyDaily: [
     { ts: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), totalPriceKrw: 1890000 },
     { ts: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(), totalPriceKrw: 1850000 },
     { ts: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(), totalPriceKrw: 1790000 },
