@@ -1,12 +1,14 @@
 {
-    "name": "@pricebuddy/promo",
-    "version": "1.0.0",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "scripts": {
-        "build": "tsc"
-    },
-    "devDependencies": {
-        "typescript": "^4.9.0"
-    }
+  "name": "@pricebuddy/promo",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "typescript": "^4.9.0"
+  }
 }

@@ -1,8 +1,8 @@
-import { PriceHistoryPoint } from '@pricebuddy/core';
+import type { PriceHistoryPointDTO } from '@pricebuddy/core';
 import * as ss from 'simple-statistics';
 
 export interface ForecastInput {
-    history: PriceHistoryPoint[];
+    history: PriceHistoryPointDTO[];
     daysAhead?: number; // Default 7
 }
 
