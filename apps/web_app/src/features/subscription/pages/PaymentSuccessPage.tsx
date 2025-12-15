@@ -25,7 +25,7 @@ export function PaymentSuccessPage() {
         .then(() => {
           console.log("Payment verified");
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           console.error("Payment verification failed:", error);
         });
     }
