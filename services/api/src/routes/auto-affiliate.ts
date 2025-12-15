@@ -3,6 +3,7 @@ import { generateAffiliateLink } from "../lib/affiliate-clients";
 import { detectMarketplaceFromUrl, type Marketplace } from "../lib/marketplace";
 
 export const router = Router();
+export const autoAffiliateRouter = router;
 
 router.get("/auto-affiliate", async (req: Request, res: Response) => {
   try {
