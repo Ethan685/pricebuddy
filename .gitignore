@@ -73,3 +73,12 @@ firebase-debug.log
 # ML Service venv
 ml_service/venv/
 !flutter_app/lib/**
+# build outputs
+functions/lib/
+services/*/lib/
+services/**/lib/
+apps/**/dist/
+apps/**/.vite/
+apps/**/.turbo/
+# flutter generated
+flutter_app/macos/Flutter/GeneratedPluginRegistrant.swift
