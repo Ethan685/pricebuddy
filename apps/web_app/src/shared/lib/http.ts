@@ -14,8 +14,18 @@ export async function http<T>(url: string, init?: RequestInit): Promise<T> {
   return (await res.text()) as unknown as T;
 }
 
-export function httpGet<T>(url: string): Promise<T> {
-  return http<T>(url, { method: "GET" });
+function withParams(url: string, params?: Record<string, any>) {
+  if (!params) return url;
+  const u = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null) continue;
+    u.searchParams.set(k, String(v));
+  }
+  return u.pathname + (u.search ? u.search : "");
+}
+
+export function httpGet<T>(url: string, params?: Record<string, any>): Promise<T> {
+  return http<T>(withParams(url, params), { method: "GET" });
 }
 
 export function httpPost<T>(url: string, body?: unknown): Promise<T> {
