@@ -1,4 +1,13 @@
-import { firebase } from "./firebase";
+import admin from "firebase-admin";
 
-export const firestore = firebase.firestore();
+function ensureApp() {
+  if (!admin.apps.length) {
+    admin.initializeApp();
+  }
+  return admin.app();
+}
 
+export const firestore = (() => {
+  ensureApp();
+  return admin.firestore();
+})();
