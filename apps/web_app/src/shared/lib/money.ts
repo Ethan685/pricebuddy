@@ -5,3 +5,7 @@ export function formatMoney(value: number, currency: string = "KRW", locale: str
     return `${Math.round(value).toLocaleString(locale)} ${currency}`;
   }
 }
+
+export function formatKrw(value: number, locale: string = "ko-KR"): string {
+  return formatMoney(value, "KRW", locale);
+}

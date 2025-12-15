@@ -13,3 +13,15 @@ export async function http<T>(url: string, init?: RequestInit): Promise<T> {
   if (ct.includes("application/json")) return (await res.json()) as T;
   return (await res.text()) as unknown as T;
 }
+
+export function httpGet<T>(url: string): Promise<T> {
+  return http<T>(url, { method: "GET" });
+}
+
+export function httpPost<T>(url: string, body?: unknown): Promise<T> {
+  return http<T>(url, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
+}
+
+export function httpDelete<T>(url: string): Promise<T> {
+  return http<T>(url, { method: "DELETE" });
+}
