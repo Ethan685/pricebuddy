@@ -1,7 +1,7 @@
 name: Ops: run scrape_jobs
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
   schedule:
     - cron: "*/30 * * * *"
 
@@ -28,5 +28,4 @@ jobs:
           version: 9
 
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm -r --if-present run scrape_jobs
