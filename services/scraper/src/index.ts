@@ -45,4 +45,4 @@ app.listen({ port, host: "0.0.0.0" }).catch((err) => {
 });
 
 export { scrapeOffer };
-
+export * from "./job-queue";
