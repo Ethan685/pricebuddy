@@ -14,7 +14,8 @@
     "test": "pnpm -r test",
     "clean": "pnpm -r exec rm -rf dist build lib node_modules/.cache",
     "typecheck": "pnpm -r run typecheck",
-    "lint": "pnpm -r run lint"
+    "lint": "pnpm -r run lint",
+    "scrape_jobs": "node scripts/scrape-jobs.mjs"
   },
   "devDependencies": {
     "typescript": "^5.6.0"
