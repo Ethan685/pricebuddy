@@ -25,4 +25,5 @@ jobs:
         with:
           version: 9
       - run: pnpm install --frozen-lockfile
+      - run: pnpm -C services/api run build
       - run: pnpm -C services/api run scrape_jobs
