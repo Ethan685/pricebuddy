@@ -12,12 +12,14 @@
   },
   "dependencies": {
     "@pricebuddy/core": "workspace:*",
+    "axios": "^1.13.2",
     "cheerio": "^1.0.0",
     "fastify": "^4.28.0",
     "playwright": "^1.48.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/axios": "^0.14.4",
+    "@types/node": "^20.19.26",
     "typescript": "^5.6.0"
   }
 }
