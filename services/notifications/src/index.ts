@@ -1,5 +1,5 @@
 import * as functions from "firebase-functions";
-import type { FirebaseFirestore } from "firebase-admin";
+import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { firestore } from "@pricebuddy/infra/firestore";
 import { logger } from "@pricebuddy/infra/logger";
 import { sendEmail, createPriceAlertEmail } from "./email";
@@ -23,7 +23,7 @@ export const checkPriceAlerts = functions
         .where("notificationEnabled", "==", true)
         .get();
 
-      const alerts = alertsSnap.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => ({
+      const alerts = alertsSnap.docs.map((doc: QueryDocumentSnapshot) => ({
         id: doc.id,
         ...doc.data(),
       }));

@@ -19,16 +19,16 @@
     "sourceMap": true,
     "paths": {
       "@pricebuddy/core": [
-        "./libs/core/src"
+        "./libs/core/dist"
       ],
       "@pricebuddy/infra": [
-        "./libs/infra/src"
+        "./libs/infra/dist"
       ],
       "@pricebuddy/core/*": [
-        "./libs/core/src/*"
+        "./libs/core/dist/*"
       ],
       "@pricebuddy/infra/*": [
-        "./libs/infra/src/*"
+        "./libs/infra/dist/*"
       ]
     }
   },
