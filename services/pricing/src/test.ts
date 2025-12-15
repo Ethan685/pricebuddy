@@ -1,4 +1,4 @@
-import { computePrice } from './pricing';
+import { computePrice } from './index';
 import { Marketplace } from '@pricebuddy/core';
 
 // Helper to log test
