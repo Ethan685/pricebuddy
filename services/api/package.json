@@ -9,18 +9,19 @@
     "deploy": "firebase deploy --only functions",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "scrape_jobs": "pnpm -C services/api run build && node lib/ops/scrape-jobs.js"
+    "scrape_jobs": "pnpm run build && node lib/ops/scrape-jobs.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.18.2",
     "firebase-admin": "^12.0.0",
-    "firebase-functions": "^4.5.0",
-    "cors": "^2.8.5"
+    "firebase-functions": "^4.5.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.13",
     "@types/express": "^4.17.21",
     "@types/node": "^20.0.0",
-    "@types/cors": "^2.8.13",
+    "tsx": "^4.21.0",
     "typescript": "^5.6.0"
   },
   "engines": {
