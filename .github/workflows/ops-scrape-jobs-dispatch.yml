@@ -26,9 +26,9 @@ jobs:
           version: 9
       - run: pnpm install --frozen-lockfile
       - run: |
-          if pnpm -r run | grep -q "scrape_jobs"; then
-            pnpm -r run scrape_jobs
+          if pnpm -r --include-workspace-root run | grep -q "scrape_jobs"; then
+            pnpm -r --include-workspace-root run scrape_jobs
           else
-            echo "No scrape_jobs script found in workspace"
+            echo "No scrape_jobs script found in workspace (including root)"
             exit 1
           fi
