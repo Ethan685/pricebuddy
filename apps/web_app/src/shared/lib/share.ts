@@ -11,8 +11,17 @@ export function generateShareText(title: string, text: string, url: string): str
   return [title, text, url].filter(Boolean).join("\n");
 }
 
-export async function shareToKakao(url: string, title: string, text: string): Promise<void> {
-  const shareText = generateShareText(title, text, url);
+type KakaoPayload = { url: string; title: string; text: string };
+
+export async function shareToKakao(payload: KakaoPayload): Promise<void>;
+export async function shareToKakao(url: string, title: string, text: string): Promise<void>;
+export async function shareToKakao(a: any, b?: any, c?: any): Promise<void> {
+  const payload: KakaoPayload =
+    typeof a === "string"
+      ? { url: String(a), title: String(b ?? ""), text: String(c ?? "") }
+      : { url: String(a?.url ?? ""), title: String(a?.title ?? ""), text: String(a?.text ?? "") };
+
+  const shareText = generateShareText(payload.title, payload.text, payload.url);
   await copyToClipboard(shareText);
 }
 
