@@ -1,0 +1,51 @@
+name: Ops: run scrape_jobs
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+concurrency:
+  group: ops-scrape-jobs
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: run scrape jobs (auto-detect)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if pnpm -r --if-present run | grep -q "scrape_jobs"; then
+            pnpm -r run scrape_jobs
+            exit 0
+          fi
+          if pnpm -C services/scraper --if-present run | grep -q "scrape_jobs"; then
+            pnpm -C services/scraper run scrape_jobs
+            exit 0
+          fi
+          if pnpm -C services/api --if-present run | grep -q "scrape_jobs"; then
+            pnpm -C services/api run scrape_jobs
+            exit 0
+          fi
+          if pnpm -C services/scraper --if-present run | grep -q "start"; then
+            pnpm -C services/scraper start
+            exit 0
+          fi
+          echo "No scrape_jobs script found in workspace. Add a script named scrape_jobs."
+          exit 1
