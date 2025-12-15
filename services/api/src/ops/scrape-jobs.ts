@@ -1,6 +1,6 @@
 async function main() {
   console.log("scrape_jobs: start");
-  console.log("scrape_jobs: TODO wire to queue/enqueue worker");
+  console.log("scrape_jobs: TODO connect to queue/worker + persist offers");
   console.log("scrape_jobs: done");
 }
 
