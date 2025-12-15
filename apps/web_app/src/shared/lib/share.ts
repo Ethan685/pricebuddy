@@ -7,13 +7,13 @@ export function generateShareUrl(pathOrUrl: string): string {
   return `${window.location.origin}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
 }
 
-export async function shareToKakao(payload: { title?: string; text: string; url: string }): Promise<void> {
-  const text = [payload.title, payload.text, payload.url].filter(Boolean).join("\n");
-  await copyToClipboard(text);
+export function generateShareText(title: string, text: string, url: string): string {
+  return [title, text, url].filter(Boolean).join("\n");
 }
 
-export function generateShareText(payload: { title?: string; text: string; url?: string }): string {
-  return [payload.title, payload.text, payload.url].filter(Boolean).join("\n");
+export async function shareToKakao(url: string, title: string, text: string): Promise<void> {
+  const shareText = generateShareText(title, text, url);
+  await copyToClipboard(shareText);
 }
 
 export async function shareText(payload: { title?: string; text: string; url?: string }) {
@@ -21,5 +21,6 @@ export async function shareText(payload: { title?: string; text: string; url?: s
     await navigator.share(payload as any);
     return;
   }
-  await copyToClipboard(generateShareText(payload));
+  const t = [payload.title, payload.text, payload.url].filter(Boolean).join("\n");
+  await copyToClipboard(t);
 }

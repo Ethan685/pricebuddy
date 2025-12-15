@@ -16,7 +16,9 @@ export async function http<T>(url: string, init?: RequestInit): Promise<T> {
 
 function withParams(url: string, params?: Record<string, any>) {
   if (!params) return url;
-  const u = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+  const base =
+    typeof window !== "undefined" ? window.location.origin : "http://localhost";
+  const u = new URL(url, base);
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined || v === null) continue;
     u.searchParams.set(k, String(v));
@@ -29,7 +31,10 @@ export function httpGet<T>(url: string, params?: Record<string, any>): Promise<T
 }
 
 export function httpPost<T>(url: string, body?: unknown): Promise<T> {
-  return http<T>(url, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
+  return http<T>(url, {
+    method: "POST",
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
 }
 
 export function httpDelete<T>(url: string): Promise<T> {
