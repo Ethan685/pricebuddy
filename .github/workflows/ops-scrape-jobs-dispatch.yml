@@ -25,6 +25,4 @@ jobs:
         with:
           version: 9
       - run: pnpm install --frozen-lockfile
-      - run: |
-          test -f scripts/scrape-jobs.mjs
-          node scripts/scrape-jobs.mjs
+      - run: pnpm -C services/api run scrape_jobs
