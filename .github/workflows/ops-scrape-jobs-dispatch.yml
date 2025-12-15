@@ -18,14 +18,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-
       - uses: pnpm/action-setup@v4
         with:
           version: 9
-
       - run: pnpm install --frozen-lockfile
-      - run: pnpm -r --if-present run scrape_jobs
+      - run: |
+          pnpm -r run | cat
+          if pnpm -r run | grep -q "scrape_jobs"; then
+            pnpm -r run scrape_jobs
+          else
+            echo "No scrape_jobs script found in workspace"
+            exit 1
+          fi
