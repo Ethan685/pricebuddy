@@ -22,8 +22,9 @@ jobs:
           node-version: "20"
           cache: "pnpm"
 
-      - name: Enable corepack
-        run: corepack enable
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.25.0"
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
@@ -46,17 +47,18 @@ jobs:
           node-version: "20"
           cache: "pnpm"
 
-      - name: Enable corepack
-        run: corepack enable
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.25.0"
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
       - name: Web typecheck
-        run: pnpm -C web_app typecheck
+        run: pnpm -C apps/web_app typecheck
 
       - name: Web build
-        run: pnpm -C web_app build
+        run: pnpm -C apps/web_app build
 
   flutter-analyze:
     name: flutter-analyze
@@ -76,4 +78,3 @@ jobs:
       - name: Flutter analyze
         working-directory: flutter_app
         run: flutter analyze
-
