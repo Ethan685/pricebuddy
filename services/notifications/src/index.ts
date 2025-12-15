@@ -18,6 +18,10 @@ export const checkPriceAlerts = functions
     try {
       // 활성 알림 조회
       const alertsSnap = await firestore
+    // --- type guard (auto) ---
+    const cond = (String((alert as any).condition || "")).toUpperCase() as "BELOW" | "ABOVE";
+    const prevPrice = (alert as any).currentPrice ?? currentPrice;
+    // --------------------------------
         .collection("price_alerts")
         .where("isActive", "==", true)
         .where("notificationEnabled", "==", true)
@@ -44,16 +48,16 @@ export const checkPriceAlerts = functions
 
           // 알림 조건 확인
           let shouldNotify = false;
-          if (alert.condition === "below" && currentPrice <= alert.targetPrice) {
+          if (cond === "below" && currentPrice <= alert.targetPrice) {
             shouldNotify = true;
           } else if (
-            alert.condition === "above" &&
+            cond === "above" &&
             currentPrice >= alert.targetPrice
           ) {
             shouldNotify = true;
           } else if (
-            alert.condition === "change" &&
-            Math.abs(currentPrice - alert.currentPrice) / alert.currentPrice >
+            cond === "change" &&
+            Math.abs(currentPrice - prevPrice) / prevPrice >
               0.05
           ) {
             // 5% 이상 변동
