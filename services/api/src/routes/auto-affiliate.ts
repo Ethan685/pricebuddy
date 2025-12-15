@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { firestore } from "../lib/firestore";
 import { generateAffiliateLink } from "../lib/affiliate-clients";
+import { detectMarketplaceFromUrl } from "../lib/marketplace";
 
 export const autoAffiliateRouter = Router();
 
@@ -60,7 +61,7 @@ async function checkApiKeyValidity(marketplace: string, apiKey: string): Promise
   try {
     // 테스트 URL로 제휴 링크 생성 시도
     const testUrl = getTestUrl(marketplace);
-    const testLink = await generateAffiliateLink(marketplace as any, testUrl, "test");
+    const testLink = await generateAffiliateLink(marketplace, testUrl, "test");
     
     // 링크에 API 키가 포함되어 있으면 유효
     return testLink.includes(apiKey) || testLink !== testUrl;
