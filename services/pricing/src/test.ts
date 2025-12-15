@@ -12,7 +12,7 @@ function test(name: string, actual: any, expected: any) {
 
 // 1. KR Import with Tax (Expensive item)
 const res1 = computePrice({
-    marketplace: 'amazon',
+    marketplace: Marketplace.AMAZON,
     country: 'KR',
     basePrice: 200, // $200 USD
     currency: 'USD',
