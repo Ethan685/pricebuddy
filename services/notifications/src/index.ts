@@ -23,10 +23,7 @@ export const checkPriceAlerts = functions
         .where("notificationEnabled", "==", true)
         .get();
 
-      const alerts = alertsSnap.docs.map((doc: QueryDocumentSnapshot) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const alerts = alertsSnap.docs.map((doc) => { const alert = doc.data() as PriceAlert; return alert; });
 
       logger.info(`Found ${alerts.length} active alerts`);
 
