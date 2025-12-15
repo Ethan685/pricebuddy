@@ -9,7 +9,7 @@
     "deploy": "firebase deploy --only functions",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "scrape_jobs": "node dist/ops/scrape-jobs.js"
+    "scrape_jobs": "pnpm -C services/api run build && node lib/ops/scrape-jobs.js"
   },
   "dependencies": {
     "express": "^4.18.2",
