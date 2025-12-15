@@ -42,3 +42,8 @@ export async function fetchHtml(url: string, headers: Record<string, string> = {
         throw error;
     }
 }
+
+
+export async function scrapeOffer(input: unknown): Promise<unknown> {
+  return input;
+}
