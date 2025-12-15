@@ -10,7 +10,6 @@ coverage/
 # Production
 dist/
 build/
-lib/
 *.tsbuildinfo
 
 # Environment variables
@@ -73,3 +72,4 @@ firebase-debug.log
 
 # ML Service venv
 ml_service/venv/
+!flutter_app/lib/**
