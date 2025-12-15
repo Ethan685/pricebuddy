@@ -1,12 +1,31 @@
 name: Ops scrape jobs
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-scrape-jobs
+  cancel-in-progress: true
 
 jobs:
-  smoke:
+  run:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - run: echo "ops workflow OK"
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r --if-present run scrape_jobs
