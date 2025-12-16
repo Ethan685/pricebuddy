@@ -1,0 +1,6 @@
+services:
+  scraper:
+    build:
+      context: ./services/scraper
+    ports:
+      - "8080:8080"
