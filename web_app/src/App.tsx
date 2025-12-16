@@ -14,6 +14,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(module =
 const WalletPage = lazy(() => import('./features/wallet/pages/WalletPage').then(module => ({ default: module.WalletPage })));
 const CommunityPage = lazy(() => import('./pages/CommunityPage').then(module => ({ default: module.CommunityPage })));
 const WishlistPage = lazy(() => import('./pages/WishlistPage').then(module => ({ default: module.WishlistPage })));
+const WatchlistPage = lazy(() => import('./pages/WatchlistPage').then(module => ({ default: module.default })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(module => ({ default: module.ProfilePage })));
 const CashbackPage = lazy(() => import('./pages/CashbackPage').then(module => ({ default: module.CashbackPage })));
 const SeedPage = lazy(() => import('./pages/SeedPage').then(module => ({ default: module.SeedPage })));
@@ -63,6 +64,7 @@ export default function App() {
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/enterprise" element={<EnterpriseDashboard />} />
               <Route path="/wishlist" element={<WishlistPage />} />
+              <Route path="/watchlist" element={<WatchlistPage />} />
               <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/login" />} />
               <Route path="/seed" element={<SeedPage />} />
               <Route path="/cashback" element={<CashbackPage />} />
