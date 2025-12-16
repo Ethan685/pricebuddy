@@ -216,7 +216,9 @@ async function scrapeSingle(marketplace: Marketplace, url: string, debugMode: bo
   }
 
   if (parsed.debug.contains.captchaLike || parsed.debug.contains.loginGate || parsed.debug.contains.adultGate) {
-    throw new Error("blocked_or_gate_detected");
+    const err: any = new Error("blocked_or_gate_detected");
+    err.statusCode = 409;
+    throw err;
   }
 
   return parsed.out;
@@ -235,9 +237,10 @@ app.post("/scrape", async (req, res) => {
     const out = await scrapeSingle(marketplace, url, debugMode);
     res.json(out);
   } catch (e: unknown) {
-    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
-  }
-});
+    const status = (e && typeof e === "object" && "statusCode" in e) ? (e as any).statusCode : 500;
+      res.status(status).json({ error: e instanceof Error ? e.message : String(e) });
+    }
+  });
 
 const port = Number(process.env.PORT ?? 8080);
 app.listen(port, () => console.log(`scraper-lite listening on ${port}`));
