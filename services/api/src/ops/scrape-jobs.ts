@@ -35,11 +35,41 @@ type Offer = {
   inStock?: boolean;
 };
 
+function nowTs() {
+  return new Date();
+}
+
+function shouldRun(item: WatchlistItem, last: Date | null) {
+  const every = item.pollEveryMin ?? 180;
+  if (!last) return true;
+  const diffMin = (Date.now() - last.getTime()) / 60000;
+  return diffMin >= every;
+}
+
+function offerFromSearchResult(market: Market, r: any): Offer | null {
+  const price = Number(r?.minPriceKrw ?? r?.priceKrw ?? r?.price ?? r?.minPrice ?? 0);
+  if (!price) return null;
+  const title = String(r?.title ?? r?.name ?? "item");
+  const url = String(r?.url ?? r?.link ?? r?.productUrl ?? "");
+  return {
+    market,
+    title,
+    url,
+    currency: "KRW",
+    priceRaw: price,
+    priceKrw: price,
+    shippingKrw: 0,
+    taxKrw: 0,
+    totalKrw: price,
+    inStock: r?.inStock ?? true,
+  };
+}
+
 function offerFromFallback(item: WatchlistItem): Offer | null {
   const price = Number(item.targetPriceKrw ?? 0);
   if (!price) return null;
   return {
-    market: (item.market ?? "unknown") as any,
+    market: (item.market ?? "unknown") as Market,
     title: String(item.query ?? "item"),
     url: "",
     currency: "KRW",
@@ -52,50 +82,36 @@ function offerFromFallback(item: WatchlistItem): Offer | null {
   };
 }
 
-function nowTs() {
-  return new Date();
-}
-
-function shouldRun(item: WatchlistItem, last: Date | null) {
-  const every = item.pollEveryMin ?? 180;
-  if (!last) return true;
-  const diffMin = (Date.now() - last.getTime()) / 60000;
-  return diffMin >= every;
-}
-
-function offerFromSearchResult(market, first) {
-  const price = Number(first?.minPriceKrw ?? first?.priceKrw ?? first?.price ?? 0);
-  if (!price) return null;
-  const title = String(first?.title ?? first?.name ?? "item");
-  const url = String(first?.url ?? first?.link ?? (first?.productId ? `https://pricebuddy.app/p/${first.productId}` : ""));
-  return {
-    market,
-    title,
-    url,
-    currency: "KRW",
-    priceRaw: price,
-    priceKrw: price,
-    shippingKrw: 0,
-    taxKrw: 0,
-    totalKrw: price,
-    inStock: true,
-  };
-}
-
-async function scrapeOne(market, query) {
+async function scrapeOne(market: Market, query: string): Promise<Offer | null> {
   const isUrl = /^https?:\/\//i.test(query);
+
+  const toMarketplace = (m: Market) => {
+    const map: Record<string, any> = {
+      naver: "naver",
+      coupang: "coupang",
+      amazon: "amazon",
+      aliexpress: "aliexpress",
+      ebay: "ebay",
+      rakuten: "rakuten",
+      mercari: "mercari",
+      yahoojp: "yahoojp",
+    };
+    return (map[m] ?? m) as any;
+  };
 
   try {
     if (isUrl) {
-      const scraped = await scraperClient.scrapeSingle(market, query);
-      const basePrice = Number(scraped.price ?? scraped.basePrice ?? 0);
+      const scraped: any = await (scraperClient as any).scrapeSingle?.(toMarketplace(market), query);
+      const basePrice = Number(scraped?.price ?? scraped?.basePrice ?? 0);
       if (!basePrice) return null;
-      const currency = String(scraped.currency ?? "KRW");
-      const shippingKrw = Number(scraped.shippingFee ?? 0);
+
+      const currency = String(scraped?.currency ?? "KRW");
+      const shippingKrw = Number(scraped?.shippingFee ?? scraped?.shippingKrw ?? 0);
       const priceKrw = currency === "KRW" ? basePrice : basePrice;
+
       return {
         market,
-        title: String(scraped.title ?? scraped.externalId ?? "item"),
+        title: String(scraped?.title ?? scraped?.name ?? scraped?.externalId ?? "item"),
         url: String(query),
         currency,
         priceRaw: basePrice,
@@ -103,16 +119,16 @@ async function scrapeOne(market, query) {
         shippingKrw,
         taxKrw: 0,
         totalKrw: priceKrw + shippingKrw,
-        inStock: true,
+        inStock: scraped?.inStock ?? true,
       };
     }
 
-    const results = await scraperClient.search(query, market === "naver" || market === "coupang" ? "KR" : "global");
+    const region: any = market === "naver" || market === "coupang" ? "KR" : "global";
+    const results: any[] = await (scraperClient as any).search?.(query, region);
     const first = results?.[0];
-    const offer = offerFromSearchResult(market, first);
-    return offer;
-  } catch (e) {
-    console.warn("scrapeOne failed:", market, query, (e instanceof Error ? e.message : String(e)));
+    return offerFromSearchResult(market, first);
+  } catch (e: unknown) {
+    console.warn("scrapeOne failed:", market, query, e instanceof Error ? e.message : String(e));
     return null;
   }
 }
@@ -139,42 +155,42 @@ async function main() {
 
     processed += 1;
 
+    const checkedAt = nowTs();
     const offer = await scrapeOne(item.market ?? "unknown", item.query);
-const checkedAt = nowTs();
-const fallback = offer ?? offerFromFallback(item);
+    const finalOffer = offer ?? offerFromFallback(item);
 
     await doc.ref.set({ lastCheckedAt: checkedAt }, { merge: true });
 
-    if (!fallback) continue;
+    if (!finalOffer) continue;
 
     const offerRef = firestore.collection("offers").doc();
     await offerRef.set({
-  watchlistId: doc.id,
-  ...fallback,
-  capturedAt: checkedAt,
-});
+      watchlistId: doc.id,
+      ...finalOffer,
+      capturedAt: checkedAt,
+    });
     storedOffers += 1;
 
     const histRef = firestore.collection("price_history").doc();
     await histRef.set({
       watchlistId: doc.id,
-      totalKrw: fallback.totalKrw,
+      totalKrw: finalOffer.totalKrw,
       capturedAt: checkedAt,
-      market: fallback.market,
+      market: finalOffer.market,
       offerId: offerRef.id,
     });
 
-    if (item.targetPriceKrw && fallback.totalKrw <= item.targetPriceKrw) {
+    if (item.targetPriceKrw && finalOffer.totalKrw <= item.targetPriceKrw) {
       await firestore.collection("notifications_queue").add({
         userId: item.userId,
         watchlistId: doc.id,
         type: "PRICE_DROP",
         payload: {
-          totalKrw: fallback.totalKrw,
+          totalKrw: finalOffer.totalKrw,
           targetPriceKrw: item.targetPriceKrw,
-          title: fallback.title,
-          url: fallback.url,
-          market: fallback.market,
+          title: finalOffer.title,
+          url: finalOffer.url,
+          market: finalOffer.market,
         },
         createdAt: checkedAt,
         status: "PENDING",
