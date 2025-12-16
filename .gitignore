@@ -87,3 +87,6 @@ flutter_app/macos/Flutter/GeneratedPluginRegistrant.swift
 # allow api source libs
 !services/api/src/lib/
 !services/api/src/lib/**
+
+# pnpm artifacts
+pnpm/
