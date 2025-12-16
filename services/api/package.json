@@ -9,7 +9,7 @@
     "deploy": "firebase deploy --only functions",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "scrape_jobs": "pnpm run build && node lib/ops/scrape-jobs.js"
+    "scrape_jobs": "pnpm run build && node lib/services/api/src/ops/scrape-jobs.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
