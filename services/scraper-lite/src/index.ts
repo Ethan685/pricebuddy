@@ -24,93 +24,181 @@ type ParsedOfferOutput = {
   attributes: Record<string, string>;
 };
 
+type DebugInfo = {
+  finalUrl?: string;
+  domTitle?: string;
+  ogTitle?: string;
+  ogImage?: string;
+  h1?: string;
+  htmlLen?: number;
+  contains: Record<string, boolean>;
+  priceCandidates?: number[];
+  ldjsonFound?: number;
+  ldjsonPrice?: number;
+};
+
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function parseGeneric(html: string): ParsedOfferOutput {
+function pickFirst<T>(...vals: Array<T | undefined | null | "">): T | undefined {
+  for (const v of vals) {
+    if (v !== undefined && v !== null && v !== "") return v as T;
+  }
+  return undefined;
+}
+
+function extractPriceCandidates(text: string): number[] {
+  const s = text.replace(/,/g, "");
+  const out: number[] = [];
+  const re = /(\d{2,9})\s*원/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s))) {
+    const n = Number(m[1]);
+    if (Number.isFinite(n) && n > 0) out.push(n);
+    if (out.length >= 50) break;
+  }
+  const uniq = Array.from(new Set(out));
+  uniq.sort((a, b) => a - b);
+  return uniq;
+}
+
+function extractLdJsonPrice($: cheerio.CheerioAPI): { found: number; price?: number } {
+  const nodes = $('script[type="application/ld+json"]');
+  let found = 0;
+  let best: number | undefined;
+
+  nodes.each((_, el) => {
+    const raw = $(el).text();
+    if (!raw) return;
+    try {
+      const json = JSON.parse(raw);
+      found += 1;
+
+      const prices: any[] = [];
+      const pushMaybe = (v: any) => {
+        if (v === undefined || v === null) return;
+        if (typeof v === "string") {
+          const x = Number(v.replace(/,/g, "").trim());
+          if (Number.isFinite(x)) prices.push(x);
+        } else if (typeof v === "number" && Number.isFinite(v)) {
+          prices.push(v);
+        }
+      };
+
+      const walk = (obj: any) => {
+        if (!obj) return;
+        if (Array.isArray(obj)) return obj.forEach(walk);
+        if (typeof obj !== "object") return;
+
+        if (obj.offers) walk(obj.offers);
+        if (obj.price) pushMaybe(obj.price);
+        if (obj.lowPrice) pushMaybe(obj.lowPrice);
+        if (obj.highPrice) pushMaybe(obj.highPrice);
+        if (obj.minPrice) pushMaybe(obj.minPrice);
+        if (obj.maxPrice) pushMaybe(obj.maxPrice);
+
+        for (const k of Object.keys(obj)) {
+          walk(obj[k]);
+        }
+      };
+
+      walk(json);
+
+      const nums = prices.filter((x) => typeof x === "number") as number[];
+      for (const x of nums) {
+        if (!best || x < best) best = x;
+      }
+    } catch {}
+  });
+
+  return { found, price: best };
+}
+
+function parseHtml(html: string): { out: ParsedOfferOutput; debug: DebugInfo } {
   const $ = cheerio.load(html);
 
-  const title =
-    $('meta[property="og:title"]').attr("content")?.trim() ||
-    $("title").text().trim() ||
-    "item";
+  const domTitle = $("title").text().trim();
+  const ogTitle = $('meta[property="og:title"]').attr("content")?.trim();
+  const ogImage = $('meta[property="og:image"]').attr("content")?.trim();
+  const h1 = $("h1").first().text().trim();
 
-  const imageUrl = $('meta[property="og:image"]').attr("content")?.trim();
+  const ld = extractLdJsonPrice($);
+  const textAll = $.text() || "";
+  const candidates = extractPriceCandidates(textAll);
 
-  const text = $.text().replace(/,/g, "");
-  const m = text.match(/(\d{2,9})\s*원/);
-  const price = m ? Number(m[1]) : undefined;
+  const chosenPrice = pickFirst<number>(ld.price, candidates.length ? candidates[0] : undefined);
 
-  return {
+  const title = pickFirst<string>(ogTitle, h1, domTitle, "item") || "item";
+
+  const contains: Record<string, boolean> = {
+    naverShopping: html.includes("search.shopping.naver.com"),
+    captchaLike: /captcha|robot|자동|비정상|접속이 제한|보안문자/i.test(html),
+    adultGate: /성인인증|본인인증/i.test(html),
+    loginGate: /로그인|sign in|account/i.test(html),
+  };
+
+  const out: ParsedOfferOutput = {
     title,
-    price,
-    basePrice: price,
+    price: chosenPrice,
+    basePrice: chosenPrice,
     currency: "KRW",
-    imageUrl,
+    imageUrl: ogImage,
     attributes: {},
   };
-}
 
-async function fetchHtmlHttp(url: string) {
-  const headers: Record<string, string> = {
-    "User-Agent":
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept":
-      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache",
-    "Upgrade-Insecure-Requests": "1",
-    "Sec-Fetch-Site": "none",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-User": "?1",
-    "Sec-Fetch-Dest": "document",
-    "Referer": "https://search.shopping.naver.com/",
+  const debug: DebugInfo = {
+    domTitle: domTitle || undefined,
+    ogTitle: ogTitle || undefined,
+    ogImage: ogImage || undefined,
+    h1: h1 || undefined,
+    htmlLen: html.length,
+    contains,
+    priceCandidates: candidates.slice(0, 12),
+    ldjsonFound: ld.found,
+    ldjsonPrice: ld.price,
   };
 
-  const maxTry = 3;
-  let lastStatus = 0;
-
-  for (let i = 0; i < maxTry; i++) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 12000);
-
-    try {
-      const res = await fetch(url, { headers, redirect: "follow", signal: ctrl.signal });
-      lastStatus = res.status;
-      const text = await res.text();
-      if (res.ok) return { html: text, status: res.status };
-      if ([418, 403, 429, 503].includes(res.status)) {
-        await sleep(400 * (i + 1));
-        continue;
-      }
-      throw new Error(`fetch failed: ${res.status}`);
-    } catch {
-      await sleep(300 * (i + 1));
-    } finally {
-      clearTimeout(t);
-    }
-  }
-
-  return { html: "", status: lastStatus || 0 };
+  return { out, debug };
 }
 
-async function fetchHtmlPlaywright(url: string) {
-  const browser = await chromium.launch({ headless: true });
+async function fetchHtmlPlaywright(url: string): Promise<{ html: string; finalUrl: string }> {
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      "--disable-blink-features=AutomationControlled",
+      "--no-sandbox",
+      "--disable-dev-shm-usage"
+    ],
+  });
+
   const ctx = await browser.newContext({
     locale: "ko-KR",
     userAgent:
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    viewport: { width: 1280, height: 800 },
+    viewport: { width: 1365, height: 900 },
   });
+
+  await ctx.addInitScript(() => {
+    Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+  });
+
   const page = await ctx.newPage();
   try {
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    const resp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
     await page.waitForTimeout(1200);
+    try { await page.waitForLoadState("networkidle", { timeout: 8000 }); } catch {}
+    await page.waitForTimeout(800);
+
     const html = await page.content();
-    return html;
+    const finalUrl = page.url();
+    const status = resp?.status();
+
+    if (!html || html.length < 1000) {
+      throw new Error(`fetch failed: empty html (status=${status ?? "?"})`);
+    }
+
+    return { html, finalUrl };
   } finally {
     await page.close().catch(() => {});
     await ctx.close().catch(() => {});
@@ -118,13 +206,20 @@ async function fetchHtmlPlaywright(url: string) {
   }
 }
 
-async function scrapeSingle(_marketplace: Marketplace, url: string): Promise<ParsedOfferOutput> {
-  const http = await fetchHtmlHttp(url);
-  if (http.status && http.status !== 418 && http.html) return parseGeneric(http.html);
+async function scrapeSingle(marketplace: Marketplace, url: string, debugMode: boolean) {
+  const { html, finalUrl } = await fetchHtmlPlaywright(url);
+  const parsed = parseHtml(html);
+  parsed.debug.finalUrl = finalUrl;
 
-  const html = await fetchHtmlPlaywright(url);
-  if (!html) throw new Error(`fetch failed: ${http.status || 418}`);
-  return parseGeneric(html);
+  if (debugMode) {
+    return { ...parsed.out, debug: parsed.debug };
+  }
+
+  if (parsed.debug.contains.captchaLike || parsed.debug.contains.loginGate || parsed.debug.contains.adultGate) {
+    throw new Error("blocked_or_gate_detected");
+  }
+
+  return parsed.out;
 }
 
 const app = express();
@@ -134,9 +229,10 @@ app.get("/healthz", (_req, res) => res.status(200).send("ok"));
 
 app.post("/scrape", async (req, res) => {
   try {
+    const debugMode = String(req.query.debug ?? "") === "1";
     const { marketplace, url } = req.body as { marketplace: Marketplace; url: string };
     if (!marketplace || !url) return res.status(400).json({ error: "missing marketplace/url" });
-    const out = await scrapeSingle(marketplace, url);
+    const out = await scrapeSingle(marketplace, url, debugMode);
     res.json(out);
   } catch (e: unknown) {
     res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
