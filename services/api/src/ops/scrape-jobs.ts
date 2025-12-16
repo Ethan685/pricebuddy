@@ -112,7 +112,7 @@ async function scrapeOne(market, query) {
     const offer = offerFromSearchResult(market, first);
     return offer;
   } catch (e) {
-    console.warn("scrapeOne failed:", market, query, e?.message ?? e);
+    console.warn("scrapeOne failed:", market, query, (e instanceof Error ? e.message : String(e)));
     return null;
   }
 }
