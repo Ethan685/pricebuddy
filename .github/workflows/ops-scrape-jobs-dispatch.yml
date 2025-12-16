@@ -18,11 +18,37 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9
+
       - run: pnpm install --frozen-lockfile
+
+      - name: Setup GCP credentials for Firestore
+        shell: bash
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$SA_JSON" ]; then
+            echo "Missing secret: FIREBASE_SERVICE_ACCOUNT_JSON"
+            exit 1
+          fi
+          echo "$SA_JSON" > "$RUNNER_TEMP/gcp-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/gcp-sa.json" >> $GITHUB_ENV
+
+      - name: Set project id (optional)
+        shell: bash
+        env:
+          PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -n "$PROJECT_ID" ]; then
+            echo "GCLOUD_PROJECT=$PROJECT_ID" >> $GITHUB_ENV
+            echo "FIREBASE_PROJECT_ID=$PROJECT_ID" >> $GITHUB_ENV
+          fi
+
       - run: pnpm -C services/api run scrape_jobs
