@@ -1,6 +1,6 @@
 import { firestore } from "../lib/firestore";
-
 import { scraperClient } from "../clients/scraper-client";
+
 type Market =
   | "naver"
   | "coupang"
@@ -15,7 +15,7 @@ type Market =
 type WatchlistItem = {
   userId: string;
   market: Market;
-  query: string; // keyword or URL
+  query: string;
   targetPriceKrw?: number;
   pollEveryMin?: number;
   active?: boolean;
@@ -46,12 +46,10 @@ function shouldRun(item: WatchlistItem, last: Date | null) {
   return diffMin >= every;
 }
 
-// TODO: wire to real scraper client in this repo
 async function scrapeOne(market: Market, query: string): Promise<Offer | null> {
   const isUrl = /^https?:\/\//i.test(query);
 
   const toMarketplace = (m: Market) => {
-    const mm: any = m;
     const map: Record<string, any> = {
       naver: "naver",
       coupang: "coupang",
@@ -62,7 +60,7 @@ async function scrapeOne(market: Market, query: string): Promise<Offer | null> {
       mercari: "mercari",
       yahoojp: "yahoojp",
     };
-    return (map[mm] ?? mm) as any;
+    return (map[m] ?? m) as any;
   };
 
   try {
@@ -72,7 +70,9 @@ async function scrapeOne(market: Market, query: string): Promise<Offer | null> {
       if (!basePrice) return null;
 
       const currency = String(scraped.currency ?? "KRW");
-      const shippingKrw = Number(scraped.shippingFee ?? 0);
+      const shippingKrw = Number(scraped.shippingFee ?? scraped.shippingKrw ?? 0);
+
+      const priceKrw = currency === "KRW" ? basePrice : basePrice;
 
       return {
         market,
@@ -80,16 +80,16 @@ async function scrapeOne(market: Market, query: string): Promise<Offer | null> {
         url: String(query),
         currency,
         priceRaw: basePrice,
-        priceKrw: currency === "KRW" ? basePrice : basePrice,
+        priceKrw,
         shippingKrw,
         taxKrw: 0,
-        totalKrw: (currency === "KRW" ? basePrice : basePrice) + shippingKrw,
+        totalKrw: priceKrw + shippingKrw,
         inStock: scraped.inStock ?? true,
       };
     }
 
     const region: any = market === "naver" || market === "coupang" ? "KR" : "global";
-    const results: any[] = await scraperClient.search(query, region);
+    const results: any[] = await (scraperClient as any).search?.(query, region);
     const first = results?.[0];
     const url = first?.url || first?.productUrl || first?.link;
     if (!url) return null;
@@ -101,32 +101,28 @@ async function scrapeOne(market: Market, query: string): Promise<Offer | null> {
     const currency = String(scraped.currency ?? first?.currency ?? "KRW");
     const shippingKrw = Number(scraped.shippingFee ?? first?.shippingFee ?? 0);
 
+    const priceKrw = currency === "KRW" ? basePrice : basePrice;
+
     return {
       market,
       title: String(scraped.title ?? first?.title ?? first?.name ?? scraped.externalId ?? "item"),
       url: String(url),
       currency,
       priceRaw: basePrice,
-      priceKrw: currency === "KRW" ? basePrice : basePrice,
+      priceKrw,
       shippingKrw,
       taxKrw: 0,
-      totalKrw: (currency === "KRW" ? basePrice : basePrice) + shippingKrw,
+      totalKrw: priceKrw + shippingKrw,
       inStock: scraped.inStock ?? first?.inStock ?? true,
     };
-  } catch (e) {
+  } catch (e: any) {
     console.warn("scrapeOne failed:", market, query, e?.message ?? e);
     return null;
   }
 }
 
-
-async function main
-}
-
 async function main() {
   console.log("scrape_jobs: start");
-
-  
 
   const snap = await firestore
     .collection("watchlist_items")
@@ -150,12 +146,7 @@ async function main() {
     const offer = await scrapeOne(item.market ?? "unknown", item.query);
     const checkedAt = nowTs();
 
-    await doc.ref.set(
-      {
-        lastCheckedAt: checkedAt,
-      },
-      { merge: true }
-    );
+    await doc.ref.set({ lastCheckedAt: checkedAt }, { merge: true });
 
     if (!offer) continue;
 
@@ -176,7 +167,6 @@ async function main() {
       offerId: offerRef.id,
     });
 
-    // simple alert queue (dedupe can be added later)
     if (item.targetPriceKrw && offer.totalKrw <= item.targetPriceKrw) {
       await firestore.collection("notifications_queue").add({
         userId: item.userId,
@@ -195,14 +185,7 @@ async function main() {
     }
   }
 
-  console.log(
-    JSON.stringify(
-      { processed, storedOffers, totalWatchlist: snap.size },
-      null,
-      2
-    )
-  );
-
+  console.log(JSON.stringify({ processed, storedOffers, totalWatchlist: snap.size }, null, 2));
   console.log("scrape_jobs: done");
 }
 
