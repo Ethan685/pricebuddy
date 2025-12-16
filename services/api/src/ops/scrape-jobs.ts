@@ -1,5 +1,6 @@
 import { firestore } from "../lib/firestore";
 import { scraperClient } from "../clients/scraper-client";
+import { naverShoppingSearch } from "../providers/naverShoppingSearch";
 
 type Market =
   | "naver"
@@ -62,6 +63,25 @@ function offerFromSearchResult(market: Market, r: any): Offer | null {
     taxKrw: 0,
     totalKrw: price,
     inStock: r?.inStock ?? true,
+  };
+}
+
+async function naverFallbackOffer(query: string): Promise<Offer | null> {
+  const items = await naverShoppingSearch(query);
+  const it = items?.[0];
+  const price = Number(it?.lprice ?? 0);
+  if (!price) return null;
+  return {
+    market: "naver",
+    title: String(it.title ?? query ?? "item"),
+    url: String(it.link ?? ""),
+    currency: "KRW",
+    priceRaw: price,
+    priceKrw: price,
+    shippingKrw: 0,
+    taxKrw: 0,
+    totalKrw: price,
+    inStock: true
   };
 }
 
@@ -128,9 +148,26 @@ async function scrapeOne(market: Market, query: string): Promise<Offer | null> {
     const first = results?.[0];
     return offerFromSearchResult(market, first);
   } catch (e: unknown) {
-    console.warn("scrapeOne failed:", market, query, e instanceof Error ? e.message : String(e));
-    return null;
+  const msg = e instanceof Error ? e.message : String(e);
+  console.warn("scrapeOne failed:", market, query, msg);
+
+  const isBlocked =
+    msg.includes("Scraper error: 409") ||
+    msg.includes("blocked_or_gate_detected") ||
+    msg.includes("captcha") ||
+    msg.includes("robot");
+
+  if (market === "naver" && !isUrl && isBlocked) {
+    try {
+      const fb = await naverFallbackOffer(query);
+      if (fb) return fb;
+    } catch (e2: unknown) {
+      console.warn("naver openapi fallback failed:", e2 instanceof Error ? e2.message : String(e2));
+    }
   }
+
+  return null;
+}
 }
 
 async function main() {
