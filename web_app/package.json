@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "echo \"legacy web_app disabled - use apps/web_app\" && exit 0",
+    "build": "echo \"legacy web_app disabled - use apps/web_app\" && exit 0",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit"
