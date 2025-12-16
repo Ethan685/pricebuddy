@@ -35,6 +35,23 @@ type Offer = {
   inStock?: boolean;
 };
 
+function offerFromFallback(item: WatchlistItem): Offer | null {
+  const price = Number(item.targetPriceKrw ?? 0);
+  if (!price) return null;
+  return {
+    market: (item.market ?? "unknown") as any,
+    title: String(item.query ?? "item"),
+    url: "",
+    currency: "KRW",
+    priceRaw: price,
+    priceKrw: price,
+    shippingKrw: 0,
+    taxKrw: 0,
+    totalKrw: price,
+    inStock: true,
+  };
+}
+
 function nowTs() {
   return new Date();
 }
@@ -123,40 +140,41 @@ async function main() {
     processed += 1;
 
     const offer = await scrapeOne(item.market ?? "unknown", item.query);
-    const checkedAt = nowTs();
+const checkedAt = nowTs();
+const fallback = offer ?? offerFromFallback(item);
 
     await doc.ref.set({ lastCheckedAt: checkedAt }, { merge: true });
 
-    if (!offer) continue;
+    if (!fallback) continue;
 
     const offerRef = firestore.collection("offers").doc();
     await offerRef.set({
-      watchlistId: doc.id,
-      ...offer,
-      capturedAt: checkedAt,
-    });
+  watchlistId: doc.id,
+  ...fallback,
+  capturedAt: checkedAt,
+});
     storedOffers += 1;
 
     const histRef = firestore.collection("price_history").doc();
     await histRef.set({
       watchlistId: doc.id,
-      totalKrw: offer.totalKrw,
+      totalKrw: fallback.totalKrw,
       capturedAt: checkedAt,
-      market: offer.market,
+      market: fallback.market,
       offerId: offerRef.id,
     });
 
-    if (item.targetPriceKrw && offer.totalKrw <= item.targetPriceKrw) {
+    if (item.targetPriceKrw && fallback.totalKrw <= item.targetPriceKrw) {
       await firestore.collection("notifications_queue").add({
         userId: item.userId,
         watchlistId: doc.id,
         type: "PRICE_DROP",
         payload: {
-          totalKrw: offer.totalKrw,
+          totalKrw: fallback.totalKrw,
           targetPriceKrw: item.targetPriceKrw,
-          title: offer.title,
-          url: offer.url,
-          market: offer.market,
+          title: fallback.title,
+          url: fallback.url,
+          market: fallback.market,
         },
         createdAt: checkedAt,
         status: "PENDING",
