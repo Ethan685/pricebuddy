@@ -83,3 +83,7 @@ apps/**/.turbo/
 # flutter generated
 flutter_app/macos/Flutter/GeneratedPluginRegistrant.swift
 !services/api/src/lib/**
+
+# allow api source libs
+!services/api/src/lib/
+!services/api/src/lib/**
