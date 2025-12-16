@@ -15,17 +15,6 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    services:
-      scraper:
-        image: node:20-alpine
-        ports:
-          - 8080:8080
-        options: >-
-          --health-cmd "wget -qO- http://localhost:8080/healthz || exit 1"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 20
-    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 

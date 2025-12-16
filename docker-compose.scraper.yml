@@ -1,6 +1,6 @@
 services:
   scraper:
     build:
-      context: ./services/scraper
+      context: ./services/scraper-lite
     ports:
       - "8080:8080"
