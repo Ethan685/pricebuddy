@@ -66,6 +66,16 @@ function offerFromSearchResult(market: Market, r: any): Offer | null {
   };
 }
 
+function extractQueryFromUrl(u: string): string {
+  try {
+    const url = new URL(u);
+    const q = url.searchParams.get("query") || url.searchParams.get("q") || url.searchParams.get("keyword");
+    return (q ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
 async function naverFallbackOffer(query: string): Promise<Offer | null> {
   const items = await naverShoppingSearch(query);
   const it = items?.[0];
@@ -193,7 +203,21 @@ async function main() {
     processed += 1;
 
     const checkedAt = nowTs();
-    const offer = await scrapeOne(item.market ?? "unknown", item.query);
+    let offer = await scrapeOne(item.market ?? "unknown", item.query);
+
+    if (!offer && (item.market ?? "").toLowerCase() === "naver") {
+      const qFromUrl = extractQueryFromUrl(String(item.query ?? ""));
+      const q = (qFromUrl || String((item as any).title ?? "") || "").trim();
+      if (q) {
+        try {
+          const fb = await naverFallbackOffer(q);
+          if (fb) offer = fb;
+        } catch (e: unknown) {
+          console.warn("naver openapi fallback(main) failed:", e instanceof Error ? e.message : String(e));
+        }
+      }
+    }
+
     const finalOffer = offer ?? offerFromFallback(item);
 
     await doc.ref.set({ lastCheckedAt: checkedAt }, { merge: true });
