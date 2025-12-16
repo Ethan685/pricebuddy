@@ -14,7 +14,7 @@ export async function incMetric(marketplace: string, field: "success" | "failure
   const key = `${dayKey()}__${marketplace}`;
   const ref = firestore.collection(COL).doc(key);
 
-  await firestore.runTransaction(async (tx) => {
+  await firestore.runTransaction(async (tx: any) => {
     const snap = await tx.get(ref);
     const cur = snap.exists ? (snap.data() as any) : {};
     const next: any = {

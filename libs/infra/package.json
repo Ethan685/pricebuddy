@@ -14,5 +14,13 @@
   },
   "devDependencies": {
     "typescript": "^5.6.0"
+  },
+  "exports": {
+    ".": {},
+    "./firestore": {
+      "types": "./dist/firestore.d.ts",
+      "import": "./dist/firestore.js",
+      "require": "./dist/firestore.js"
+    }
   }
 }

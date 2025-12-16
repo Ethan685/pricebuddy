@@ -109,7 +109,7 @@ export async function claimJobs(params: {
     const job = d.data() as ScrapeJob;
     if (typeof minPriority === "number" && job.priority < minPriority) continue;
 
-    await firestore.runTransaction(async (tx) => {
+    await firestore.runTransaction(async (tx: any) => {
       const ref = firestore.collection(COL).doc(job.id);
       const cur = await tx.get(ref);
       if (!cur.exists) return;

@@ -37,7 +37,7 @@ export async function recordFailure(marketplace: string, opts?: { threshold?: nu
   const openSeconds = opts?.openSeconds ?? 120;
   const ref = firestore.collection(COL).doc(marketplace);
 
-  await firestore.runTransaction(async (tx) => {
+  await firestore.runTransaction(async (tx: any) => {
     const cur = await tx.get(ref);
     const now = nowIso();
     const data = (cur.exists ? (cur.data() as BreakerState) : { failures: 0, updatedAt: now }) as BreakerState;
