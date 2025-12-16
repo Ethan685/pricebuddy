@@ -4,3 +4,9 @@ services:
       context: ./services/scraper-lite
     ports:
       - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz >/dev/null 2>&1"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
