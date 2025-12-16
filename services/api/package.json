@@ -9,7 +9,7 @@
     "deploy": "firebase deploy --only functions",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "scrape_jobs": "pnpm run build && node lib/services/api/src/ops/scrape-jobs.js"
+    "scrape_jobs": "pnpm run build && node -e \"const fs=require('fs'),path=require('path');const root=path.join(process.cwd(),'lib');function find(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory()){const r=find(p);if(r)return r;}else if(e.isFile()&&e.name==='scrape-jobs.js')return p;}}const f=find(root);if(!f){console.error('scrape-jobs.js not found under',root);process.exit(1);}console.log('running',f);require(f);\""
   },
   "dependencies": {
     "cors": "^2.8.5",
