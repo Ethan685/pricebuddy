@@ -203,7 +203,7 @@ async function main() {
     processed += 1;
 
     const checkedAt = nowTs();
-    let offer = await scrapeOne(item.market ?? "unknown", item.query);
+    let offer = await scrapeOne(item.market ?? "unknown", (String((item as any).queryText ?? "") || String(item.query ?? "")));
 
     if (!offer && (item.market ?? "").toLowerCase() === "naver") {
       const qFromUrl = extractQueryFromUrl(String(item.query ?? ""));
