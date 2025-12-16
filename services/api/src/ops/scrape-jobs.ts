@@ -208,6 +208,7 @@ async function main() {
     if (!offer && (item.market ?? "").toLowerCase() === "naver") {
       const qFromUrl = extractQueryFromUrl(String(item.query ?? ""));
       const q = (qFromUrl || String((item as any).title ?? "") || "").trim();
+      console.warn("naver openapi fallback(main) q=", q);
       if (q) {
         try {
           const fb = await naverFallbackOffer(q);
@@ -217,7 +218,6 @@ async function main() {
         }
       }
     }
-
     const finalOffer = offer ?? offerFromFallback(item);
 
     await doc.ref.set({ lastCheckedAt: checkedAt }, { merge: true });
