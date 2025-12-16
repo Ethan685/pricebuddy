@@ -46,37 +46,39 @@ function shouldRun(item: WatchlistItem, last: Date | null) {
   return diffMin >= every;
 }
 
-async function scrapeOne(market: Market, query: string): Promise<Offer | null> {
-  const isUrl = /^https?:\/\//i.test(query);
-
-  const toMarketplace = (m: Market) => {
-    const map: Record<string, any> = {
-      naver: "naver",
-      coupang: "coupang",
-      amazon: "amazon",
-      aliexpress: "aliexpress",
-      ebay: "ebay",
-      rakuten: "rakuten",
-      mercari: "mercari",
-      yahoojp: "yahoojp",
-    };
-    return (map[m] ?? m) as any;
+function offerFromSearchResult(market, first) {
+  const price = Number(first?.minPriceKrw ?? first?.priceKrw ?? first?.price ?? 0);
+  if (!price) return null;
+  const title = String(first?.title ?? first?.name ?? "item");
+  const url = String(first?.url ?? first?.link ?? (first?.productId ? `https://pricebuddy.app/p/${first.productId}` : ""));
+  return {
+    market,
+    title,
+    url,
+    currency: "KRW",
+    priceRaw: price,
+    priceKrw: price,
+    shippingKrw: 0,
+    taxKrw: 0,
+    totalKrw: price,
+    inStock: true,
   };
+}
+
+async function scrapeOne(market, query) {
+  const isUrl = /^https?:\/\//i.test(query);
 
   try {
     if (isUrl) {
-      const scraped: any = await scraperClient.scrapeSingle(toMarketplace(market), query);
+      const scraped = await scraperClient.scrapeSingle(market, query);
       const basePrice = Number(scraped.price ?? scraped.basePrice ?? 0);
       if (!basePrice) return null;
-
       const currency = String(scraped.currency ?? "KRW");
-      const shippingKrw = Number(scraped.shippingFee ?? scraped.shippingKrw ?? 0);
-
+      const shippingKrw = Number(scraped.shippingFee ?? 0);
       const priceKrw = currency === "KRW" ? basePrice : basePrice;
-
       return {
         market,
-        title: String(scraped.title ?? scraped.name ?? scraped.externalId ?? "item"),
+        title: String(scraped.title ?? scraped.externalId ?? "item"),
         url: String(query),
         currency,
         priceRaw: basePrice,
@@ -84,38 +86,15 @@ async function scrapeOne(market: Market, query: string): Promise<Offer | null> {
         shippingKrw,
         taxKrw: 0,
         totalKrw: priceKrw + shippingKrw,
-        inStock: scraped.inStock ?? true,
+        inStock: true,
       };
     }
 
-    const region: any = market === "naver" || market === "coupang" ? "KR" : "global";
-    const results: any[] = await (scraperClient as any).search?.(query, region);
+    const results = await scraperClient.search(query, market === "naver" || market === "coupang" ? "KR" : "global");
     const first = results?.[0];
-    const url = first?.url || first?.productUrl || first?.link;
-    if (!url) return null;
-
-    const scraped: any = await scraperClient.scrapeSingle(toMarketplace(market), url);
-    const basePrice = Number(scraped.price ?? scraped.basePrice ?? first?.price ?? 0);
-    if (!basePrice) return null;
-
-    const currency = String(scraped.currency ?? first?.currency ?? "KRW");
-    const shippingKrw = Number(scraped.shippingFee ?? first?.shippingFee ?? 0);
-
-    const priceKrw = currency === "KRW" ? basePrice : basePrice;
-
-    return {
-      market,
-      title: String(scraped.title ?? first?.title ?? first?.name ?? scraped.externalId ?? "item"),
-      url: String(url),
-      currency,
-      priceRaw: basePrice,
-      priceKrw,
-      shippingKrw,
-      taxKrw: 0,
-      totalKrw: priceKrw + shippingKrw,
-      inStock: scraped.inStock ?? first?.inStock ?? true,
-    };
-  } catch (e: any) {
+    const offer = offerFromSearchResult(market, first);
+    return offer;
+  } catch (e) {
     console.warn("scrapeOne failed:", market, query, e?.message ?? e);
     return null;
   }
