@@ -1,11 +1,18 @@
 import admin from "firebase-admin";
 
-if (!admin.apps.length) {
-  admin.initializeApp();
+let _app: admin.app.App | null = null;
+
+export function getAdminApp() {
+  if (_app) return _app;
+
+  if (!admin.apps.length) {
+    admin.initializeApp();
+  }
+  _app = admin.app();
+  return _app;
 }
 
-export const firestore = admin.firestore();
-export const db = firestore;
-export const FieldValue = admin.firestore.FieldValue;
-
-export default firestore;
+export function getFirestore() {
+  getAdminApp();
+  return admin.firestore();
+}

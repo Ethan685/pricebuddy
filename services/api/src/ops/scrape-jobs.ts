@@ -1,4 +1,4 @@
-import { db } from "../lib/firestore";
+import { getFirestore } from "../lib/firestore";
 
 type Market =
   | "naver"
@@ -54,7 +54,7 @@ async function scrapeOne(_market: Market, _query: string): Promise<Offer | null>
 async function main() {
   console.log("scrape_jobs: start");
 
-  const firestore = db();
+  const firestore = getFirestore();
 
   const snap = await firestore
     .collection("watchlist_items")
