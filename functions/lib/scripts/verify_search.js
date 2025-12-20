@@ -35,4 +35,3 @@ async function verifySearch() {
     }
 }
 verifySearch();
-//# sourceMappingURL=verify_search.js.map

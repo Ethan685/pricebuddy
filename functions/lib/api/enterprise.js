@@ -53,7 +53,7 @@ exports.enterpriseApi = functions.https.onRequest(async (req, res) => {
         // 2. Handle Request
         if (req.method === "GET" && req.path === "/products") {
             const productsSnap = await db.collection("products").limit(50).get();
-            const products = productsSnap.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+            const products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             res.status(200).send({ data: products });
         }
         else {
@@ -65,4 +65,3 @@ exports.enterpriseApi = functions.https.onRequest(async (req, res) => {
         res.status(500).send({ error: "Internal Server Error" });
     }
 });
-//# sourceMappingURL=enterprise.js.map

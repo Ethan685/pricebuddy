@@ -25,7 +25,10 @@ class SSGAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.5,
                 reviewCount: 678
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -46,7 +49,7 @@ class SSGAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('ckwhere', affiliateId);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return productUrl;
         }
     }
@@ -75,7 +78,10 @@ class LotteONAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.4,
                 reviewCount: 543
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -118,7 +124,10 @@ class WemakePriceAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.3,
                 reviewCount: 456
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -161,7 +170,10 @@ class TmonAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.2,
                 reviewCount: 389
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -181,4 +193,3 @@ class TmonAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.TmonAdapter = TmonAdapter;
-//# sourceMappingURL=KoreaMarketsExtra.js.map

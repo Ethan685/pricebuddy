@@ -25,7 +25,10 @@ class AmazonUKAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.6,
                 reviewCount: 1876
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -46,7 +49,7 @@ class AmazonUKAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('tag', tag);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return `${productUrl}?tag=${tag}`;
         }
     }
@@ -75,7 +78,10 @@ class AmazonDEAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.5,
                 reviewCount: 1432
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -96,7 +102,7 @@ class AmazonDEAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('tag', tag);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return `${productUrl}?tag=${tag}`;
         }
     }
@@ -125,7 +131,10 @@ class AmazonFRAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.4,
                 reviewCount: 1198
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -146,7 +155,7 @@ class AmazonFRAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('tag', tag);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return `${productUrl}?tag=${tag}`;
         }
     }
@@ -175,7 +184,10 @@ class eBayUKAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.5,
                 reviewCount: 987
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -195,4 +207,3 @@ class eBayUKAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.eBayUKAdapter = eBayUKAdapter;
-//# sourceMappingURL=EUMarkets.js.map

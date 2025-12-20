@@ -28,10 +28,9 @@ const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const db = admin.firestore();
 exports.logEvent = functions.https.onCall(async (data, context) => {
-    var _a;
     const { eventName, params } = data;
-    const uid = ((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid) || "anonymous";
-    functions.logger.info(`[Telemetry] ${eventName}`, Object.assign({ uid }, params));
+    const uid = context.auth?.uid || "anonymous";
+    functions.logger.info(`[Telemetry] ${eventName}`, { uid, ...params });
     try {
         await db.collection("telemetry").add({
             eventName,
@@ -48,4 +47,3 @@ exports.logEvent = functions.https.onCall(async (data, context) => {
         return { success: false };
     }
 });
-//# sourceMappingURL=telemetry.js.map

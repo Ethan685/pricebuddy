@@ -72,4 +72,3 @@ exports.generateReport = functions.firestore
         });
     }
 });
-//# sourceMappingURL=reporting.js.map

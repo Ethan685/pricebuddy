@@ -55,7 +55,7 @@ class MatcherService {
             category: product.category,
             minPrice: product.priceKRW || product.price,
             maxPrice: product.priceKRW || product.price,
-            currency: 'KRW',
+            currency: 'KRW', // Normalized currency
             offers: [this.mapToOffer(product)],
             offerCount: 1,
             // History and change data will be solidified in finalizeGroup
@@ -116,4 +116,3 @@ class MatcherService {
     }
 }
 exports.MatcherService = MatcherService;
-//# sourceMappingURL=matcher.js.map

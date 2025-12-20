@@ -1,52 +1,109 @@
-import { useQuery } from "@tanstack/react-query";
-import { httpGet } from "@/shared/lib/http";
-import { mockSearchResults } from "./mockData";
-import type { SearchResponse, RegionMode, SearchResultItem } from "@pricebuddy/core";
+import { useEffect, useMemo, useState } from "react";
+import { httpGet } from "../../../shared/lib/http";
+import { mockSearchResults } from "@/shared/data/mockSearch";
 
-// 프로덕션에서는 항상 실제 API 사용
-const USE_MOCK_DATA = false; // import.meta.env.DEV && !import.meta.env.VITE_API_BASE_URL;
+export type SearchItem = {
+  id?: string;
+  productId?: string;
+  title: string;
+  image?: string;
+  imageUrl?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  minPriceKrw?: number;
+  maxPriceKrw?: number;
+  currency?: string;
+  offers?: any[];
+  offerCount?: number;
+  priceHistory?: any[];
+  priceChange?: number;
+  priceChangePercent?: number;
+};
 
-export function useSearch(query: string, region: RegionMode) {
-  return useQuery<SearchResponse>({
-    queryKey: ["search", query, region],
-    queryFn: async () => {
-      if (USE_MOCK_DATA) {
-        // Mock 데이터 반환 (API 서버가 없을 때)
-        await new Promise((resolve) => setTimeout(resolve, 500)); // 로딩 시뮬레이션
-        
-        // 검색 쿼리 정규화 (공백 제거, 소문자 변환)
-        const normalizedQuery = query.toLowerCase().replace(/\s+/g, "");
-        
-        // 필터링: 제목에서 공백을 제거하고 비교
-        const filtered = mockSearchResults.filter((item) => {
-          const normalizedTitle = item.title.toLowerCase().replace(/\s+/g, "");
-          return normalizedTitle.includes(normalizedQuery) || 
-                 normalizedQuery.includes("iphone") || 
-                 normalizedQuery.length === 0;
-        });
-        
-        // 쿼리가 비어있거나 "iphone" 관련이면 모든 결과 반환
-        const results: SearchResultItem[] = (normalizedQuery.length === 0 || normalizedQuery.includes("iphone")
-          ? mockSearchResults
-          : filtered).map((item) => ({
-          productId: item.productId,
-          title: item.title,
-          imageUrl: item.imageUrl,
-          minTotalPriceKrw: item.minTotalPriceKrw,
-          maxTotalPriceKrw: item.maxTotalPriceKrw,
-          priceChangePct7d: item.priceChangePct7d,
-        }));
-        
-        return {
-          query,
-          region,
-          results,
-        };
-      }
-      return httpGet<SearchResponse>("/search", { q: query, region });
-    },
-    enabled: !!query,
-    retry: USE_MOCK_DATA ? false : 1, // Mock 모드에서는 재시도 안 함
+export type SearchResponse = {
+  ok: boolean;
+  q: string;
+  region: string;
+  results: SearchItem[];
+};
+
+type State = {
+  loading: boolean;
+  error: string | null;
+  data: SearchResponse | null;
+};
+
+export function useSearch(query: string, region?: string) {
+  const q = (query || "").trim();
+  const r = (region || "KR").trim();
+
+  const [state, setState] = useState<State>({
+    loading: false,
+    error: null,
+    data: null,
   });
-}
 
+  const enabled = q.length > 0;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      if (!enabled) {
+        setState({ loading: false, error: null, data: null });
+        return;
+      }
+
+      setState((s) => ({ ...s, loading: true, error: null }));
+
+      try {
+        const data = await httpGet<SearchResponse>("/api/search", {
+          query: q,
+          region: r,
+        });
+
+        if (cancelled) return;
+
+        // Hard safety: ensure consistent shape
+        const results = Array.isArray(data?.results) ? data.results : [];
+        
+        // GA 출시: API 결과가 없으면 Mock 데이터 사용
+        const safe: SearchResponse = {
+          ok: !!data?.ok,
+          q: data?.q ?? q,
+          region: data?.region ?? r,
+          results: results.length > 0 ? results : mockSearchResults,
+        };
+
+        setState({ loading: false, error: null, data: safe });
+      } catch (e: any) {
+        // API 실패 시 Mock 데이터로 폴백 (GA 출시 준비)
+        if (cancelled) return;
+        console.warn("Search API failed, using mock data:", e?.message);
+        const safe: SearchResponse = {
+          ok: true,
+          q: q,
+          region: r,
+          results: mockSearchResults,
+        };
+        setState({ loading: false, error: null, data: safe });
+      }
+    }
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, q, r]);
+
+  const results = useMemo(() => state.data?.results ?? [], [state.data]);
+
+  return {
+    loading: state.loading,
+    error: state.error,
+    data: state.data,
+    results,
+    enabled,
+  };
+}

@@ -1,21 +1,27 @@
-import { useLanguage } from "@/shared/context/LanguageContext";
-import { Language, LANGUAGE_NAMES } from "@/shared/lib/i18n";
+import React from "react";
+import { useLanguage } from "../context/LanguageContext";
+import { SUPPORTED_LANGUAGES, type AppLanguage } from "../lib/i18n";
+
+const LABEL: Record<AppLanguage, string> = {
+  ko: "한국어",
+  en: "English",
+  ja: "日本語",
+};
 
 export function LanguageSelector() {
-  const { language, setLanguage, supportedLanguages } = useLanguage();
+  const { language, setLanguage } = useLanguage();
 
   return (
     <select
       value={language}
-      onChange={(e) => setLanguage(e.target.value as Language)}
-      className="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500"
+      onChange={(e) => setLanguage(e.target.value as AppLanguage)}
+      aria-label="Language"
     >
-      {supportedLanguages.map((lang) => (
-        <option key={lang} value={lang}>
-          {LANGUAGE_NAMES[lang]}
+      {SUPPORTED_LANGUAGES.map((lng) => (
+        <option key={lng} value={lng}>
+          {LABEL[lng]}
         </option>
       ))}
     </select>
   );
 }
-

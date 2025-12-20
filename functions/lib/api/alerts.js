@@ -47,7 +47,7 @@ exports.createPriceAlert = functions.https.onCall(async (data, context) => {
             success: true,
             data: {
                 alertId: result.alertId,
-                status: result.status,
+                status: result.status, // Explicit cast to match API type
                 message: result.message
             }
         };
@@ -72,4 +72,3 @@ exports.getMyAlerts = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("internal", "Failed to fetch alerts");
     }
 });
-//# sourceMappingURL=alerts.js.map

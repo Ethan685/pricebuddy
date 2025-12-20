@@ -1,19 +1,13 @@
-import { AppRouter } from "./router";
+import { Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/shared/layout/MainLayout";
-import { AuthProvider } from "@/features/auth/context/AuthContext";
-import { LanguageProvider } from "@/shared/context/LanguageContext";
+import { AppRouter } from "./router";
 
-function App() {
+export default function App() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <MainLayout>
-          <AppRouter />
-        </MainLayout>
-      </AuthProvider>
-    </LanguageProvider>
+    <MainLayout>
+      <AppRouter />
+    </MainLayout>
   );
 }
 
-export default App;
-
+// Force Vite to reload

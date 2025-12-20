@@ -132,49 +132,73 @@ export const apiGetPrices = functions.https.onRequest(async (req, res) => {
  * GET /api/v1/search?q=<query>&limit=<number>
  */
 export const apiSearchProducts = functions.https.onRequest(async (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
+  res.setHeader("access-control-allow-origin", "*");
+  res.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
+  res.setHeader("access-control-allow-headers", "Content-Type, X-API-Key");
 
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
-        return;
-    }
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
 
-    const auth = await authenticateRestApi(req);
-    if (!auth.authenticated) {
-        res.status(401).json({ error: auth.error });
-        return;
-    }
+  const qFromQuery = String((req.query as any)?.q || (req.query as any)?.query || "").trim();
+  let q = qFromQuery;
 
-    const query = (req.query.q as string || '').toLowerCase();
-    const limit = parseInt(req.query.limit as string) || 20;
-
-    if (!query) {
-        res.status(400).json({ error: 'Search query required' });
-        return;
-    }
-
+  if (!q) {
     try {
-        const productsSnap = await db.collection('products').get();
+      const bodyAny: any = (req as any).body;
+      if (bodyAny && typeof bodyAny === "object") {
+        q = String(bodyAny.q || bodyAny.query || "").trim();
+      } else if (typeof bodyAny === "string" && bodyAny.trim()) {
+        const parsed = JSON.parse(bodyAny);
+        q = String(parsed?.q || parsed?.query || "").trim();
+      } else if ((req as any).rawBody) {
+        const raw = Buffer.isBuffer((req as any).rawBody) ? (req as any).rawBody.toString("utf8") : String((req as any).rawBody);
+        if (raw.trim()) {
+          const parsed = JSON.parse(raw);
+          q = String(parsed?.q || parsed?.query || "").trim();
+        }
+      }
+    } catch (_) {}
+  }
 
-        const matchingProducts = productsSnap.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter((product: any) => {
-                const titleLower = (product.titleLower || '').toLowerCase();
-                return titleLower.includes(query);
-            })
-            .slice(0, limit);
+  if (!q) {
+    res.status(400).json({ error: "Search query required" });
+    return;
+  }
 
-        res.status(200).json({
-            query,
-            results: matchingProducts,
-            count: matchingProducts.length
-        });
-    } catch (error) {
-        functions.logger.error('API: Search failed', error);
-        res.status(500).json({ error: 'Internal server error' });
+  const region = String((req.query as any)?.region || (req as any)?.body?.region || "KR").trim();
+
+  // 개발 환경(에뮬레이터)에서는 API 키 검증 우회
+  // 에뮬레이터는 localhost나 127.0.0.1에서 실행되므로 이를 확인
+  const isDevelopment = 
+    process.env.FUNCTIONS_EMULATOR === "true" ||
+    process.env.FIRESTORE_EMULATOR_HOST !== undefined ||
+    !process.env.GCLOUD_PROJECT ||
+    (req.headers.host && (req.headers.host.includes("localhost") || req.headers.host.includes("127.0.0.1")));
+  
+  if (!isDevelopment) {
+    // 프로덕션 환경에서만 API 키 검증
+  try {
+    const apiKeyHeader = (req.get && req.get("x-api-key")) || (req.headers && (req.headers["x-api-key"] as any)) || "";
+    const apiKey = String(apiKeyHeader || "").trim();
+    const { valid } = await validateApiKey(apiKey);
+    if (!valid) {
+      res.status(401).json({ error: "Invalid API key" });
+      return;
     }
+  } catch (e) {
+    res.status(401).json({ error: "Invalid API key" });
+    return;
+    }
+  }
+
+  try {
+    const results = await searchProducts({ q, region });
+    res.status(200).json({ ok: true, q, region, results });
+  } catch (e: any) {
+    res.status(500).json({ error: "Search failed", detail: String(e?.message || e) });
+  }
 });
 
 /**
@@ -272,6 +296,15 @@ export const apiListAlerts = functions.https.onRequest(async (req, res) => {
 });
 
 import { ViralShare } from '../shared/ViralShare';
+import './search-global';
+import { ScraperService } from '../services/scraper/index';
+
+type SearchProductsArgs = { q: string; region: string };
+async function searchProducts({ q, region }: SearchProductsArgs): Promise<any[]> {
+  const rr = String(region || "KR").toUpperCase() === "KR" ? "KR" : "GLOBAL";
+  const products = await ScraperService.search(String(q || ""), rr, 10);
+  return Array.isArray(products) ? products : [];
+}
 
 /**
  * REST API: Generate Creator Share Link

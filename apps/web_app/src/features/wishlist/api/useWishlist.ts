@@ -21,7 +21,7 @@ export function useWishlist(userId?: string) {
     queryKey: ["wishlist", userId],
     queryFn: async () => {
       if (!userId) throw new Error("User ID required");
-      return httpGet<WishlistResponse>(`/wishlist?userId=${userId}`);
+      return httpGet<WishlistResponse>(`/api/wishlist?userId=${userId}`);
     },
     enabled: !!userId,
     retry: 1,
@@ -33,7 +33,7 @@ export function useAddToWishlist() {
   
   return useMutation({
     mutationFn: async ({ userId, productId }: { userId: string; productId: string }) => {
-      return httpPost("/wishlist", { userId, productId });
+      return httpPost("/api/wishlist", { userId, productId });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["wishlist", variables.userId] });
@@ -46,7 +46,7 @@ export function useRemoveFromWishlist() {
   
   return useMutation({
     mutationFn: async ({ userId, itemId }: { userId: string; itemId: string }) => {
-      return httpDelete(`/wishlist/${itemId}?userId=${userId}&itemId=${itemId}`);
+      return httpDelete(`/api/wishlist/${itemId}?userId=${userId}&itemId=${itemId}`);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["wishlist", variables.userId] });

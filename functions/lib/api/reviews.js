@@ -134,7 +134,7 @@ exports.analyzeReviews = functions.https.onCall(async (data, context) => {
         Output JSON: { "overallScore": number(0-5), "summary": "1-sentence summary", "clusters": [{ "topic": string, "sentiment": "positive"|"negative"|"neutral", "count": number }] }
         Focus on top 3 topics (e.g. Battery, Sound, Comfort).`;
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
+            model: "gpt-4o-mini", // Cost-effective model
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: `Reviews:\n${sample}` }
@@ -146,7 +146,11 @@ exports.analyzeReviews = functions.https.onCall(async (data, context) => {
         if (!content)
             throw new Error("Empty AI response");
         const result = JSON.parse(content);
-        return Object.assign(Object.assign({ mode: 'openai_real' }, result), { reviewsAnalyzed: sample.length });
+        return {
+            mode: 'openai_real',
+            ...result,
+            reviewsAnalyzed: sample.length
+        };
     }
     catch (error) {
         functions.logger.error("OpenAI Analysis Failed", error);
@@ -154,4 +158,3 @@ exports.analyzeReviews = functions.https.onCall(async (data, context) => {
         return analyzeHeuristically(reviews);
     }
 });
-//# sourceMappingURL=reviews.js.map

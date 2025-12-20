@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useProductDetail } from "../api/useProductDetail";
 import { useTrackProduct } from "../api/usePriceTracking";
 import { PriceCard } from "../components/PriceCard";
@@ -9,11 +10,10 @@ import { TotalCostCalculator } from "../components/TotalCostCalculator";
 import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
 import { Button } from "@/shared/ui/Button";
 import { useState } from "react";
-import { useLanguage } from "@/shared/context/LanguageContext";
 
 export function ProductDetailPage() {
   const { productId } = useParams();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { data, isLoading, error } = useProductDetail(productId!);
 
   return (
@@ -28,8 +28,8 @@ export function ProductDetailPage() {
 }
 
 function ProductDetailContent({ data }: { data: any }) {
-  const { product, offers, history, aiSignal } = data;
-  const { t } = useLanguage();
+  const { product, offers, historyDaily, aiSignal } = data;
+  const { t } = useTranslation();
   const trackProduct = useTrackProduct();
   const [isTracking, setIsTracking] = useState(false);
 
@@ -147,7 +147,7 @@ function ProductDetailContent({ data }: { data: any }) {
         />
 
         {/* Price History & Forecast */}
-        {history && history.length > 0 && <PriceHistoryChart data={history} />}
+        {historyDaily && historyDaily.length > 0 && <PriceHistoryChart data={historyDaily} />}
 
         {/* Truth Engine: Total Cost Breakdown */}
         {offers && offers.length > 0 && (

@@ -43,7 +43,7 @@ exports.createPost = functions.https.onCall(async (data, context) => {
             currency,
             imageUrl: imageUrl || null,
             authorId: context.auth.uid,
-            authorName: context.auth.token.name || context.auth.token.email || "Anonymous",
+            authorName: context.auth.token.name || context.auth.token.email || "Anonymous", // Simple fallback
             votes: 0,
             comments: 0,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -70,13 +70,12 @@ exports.votePost = functions.https.onCall(async (data, context) => {
     const voteRef = postRef.collection("votes").doc(userId);
     try {
         await db.runTransaction(async (t) => {
-            var _a, _b;
             const postDoc = await t.get(postRef);
             if (!postDoc.exists) {
                 throw new functions.https.HttpsError("not-found", "Post not found");
             }
             const voteDoc = await t.get(voteRef);
-            const currentVote = voteDoc.exists ? ((_a = voteDoc.data()) === null || _a === void 0 ? void 0 : _a.val) || 0 : 0;
+            const currentVote = voteDoc.exists ? voteDoc.data()?.val || 0 : 0;
             // Simple logic:
             // If voting same direction again -> ignore or toggle off?
             // Standard reddit style:
@@ -123,7 +122,7 @@ exports.votePost = functions.https.onCall(async (data, context) => {
             else {
                 t.set(voteRef, { val: nextVal, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
             }
-            const newTotal = (((_b = postDoc.data()) === null || _b === void 0 ? void 0 : _b.votes) || 0) + finalDelta;
+            const newTotal = (postDoc.data()?.votes || 0) + finalDelta;
             t.update(postRef, { votes: newTotal });
         });
         return { success: true };
@@ -160,4 +159,3 @@ exports.addComment = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("internal", "Comment failed");
     }
 });
-//# sourceMappingURL=community.js.map

@@ -10,7 +10,6 @@ class PriceValidator {
      * Validate if price is reasonable
      */
     validate(price, currency = 'KRW') {
-        var _a;
         // Price must be positive
         if (price <= 0) {
             console.warn(`Invalid price: ${price} (must be positive)`);
@@ -18,10 +17,10 @@ class PriceValidator {
         }
         // Price must not be unreasonably high
         const maxPrices = {
-            KRW: 100000000,
-            USD: 100000,
+            KRW: 100000000, // 1억원
+            USD: 100000, // $100k
             EUR: 100000,
-            JPY: 10000000,
+            JPY: 10000000, // 1천만엔
             CNY: 1000000 // 100만위안
         };
         const maxPrice = maxPrices[currency] || maxPrices.KRW;
@@ -30,7 +29,7 @@ class PriceValidator {
             return false;
         }
         // Check decimal places (should be reasonable)
-        const decimalPlaces = ((_a = price.toString().split('.')[1]) === null || _a === void 0 ? void 0 : _a.length) || 0;
+        const decimalPlaces = price.toString().split('.')[1]?.length || 0;
         if (decimalPlaces > 2 && currency !== 'KRW') {
             console.warn(`Too many decimal places: ${price}`);
             return false;
@@ -86,4 +85,3 @@ class PriceValidator {
 exports.PriceValidator = PriceValidator;
 // Singleton instance
 exports.priceValidator = new PriceValidator();
-//# sourceMappingURL=PriceValidator.js.map

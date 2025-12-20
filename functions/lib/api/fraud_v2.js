@@ -23,7 +23,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkFraudRisk = exports.checkFraudList = void 0;
+exports.checkFraudRisk = void 0;
+exports.checkFraudList = checkFraudList;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const db = admin.firestore();
@@ -35,7 +36,6 @@ const db = admin.firestore();
  * 3. Absurd Amount (> 1M KRW) -> Reject
  */
 async function checkFraudList(userId, amount) {
-    var _a, _b, _c;
     const userRef = db.collection("users").doc(userId);
     const userSnap = await userRef.get();
     if (!userSnap.exists) {
@@ -66,8 +66,8 @@ async function checkFraudList(userId, amount) {
         totalLedger: velocitySnap.size,
         totalWithdrawals: withdrawalDocs.length,
         recent: recentWithdrawals.length,
-        lastType: (_b = (_a = velocitySnap.docs[0]) === null || _a === void 0 ? void 0 : _a.data()) === null || _b === void 0 ? void 0 : _b.type,
-        sampleDoc: (_c = velocitySnap.docs[0]) === null || _c === void 0 ? void 0 : _c.data()
+        lastType: velocitySnap.docs[0]?.data()?.type,
+        sampleDoc: velocitySnap.docs[0]?.data()
     };
     try {
         const fs = require('fs');
@@ -94,7 +94,6 @@ async function checkFraudList(userId, amount) {
     }
     return { riskScore: 10, decision: 'approve', velocityCount: recentWithdrawals.length, debug: debugInfo };
 }
-exports.checkFraudList = checkFraudList;
 // Cloud Function wrapper (optional, for manual checks)
 exports.checkFraudRisk = functions.https.onCall(async (data, context) => {
     if (!context.auth || context.auth.token.role !== 'admin') {
@@ -102,4 +101,3 @@ exports.checkFraudRisk = functions.https.onCall(async (data, context) => {
     }
     return checkFraudList(data.userId, data.amount);
 });
-//# sourceMappingURL=fraud_v2.js.map

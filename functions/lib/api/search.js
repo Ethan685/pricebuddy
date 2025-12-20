@@ -26,6 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.seedProducts = exports.search = exports.searchProducts = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
+const scraper_1 = require("../services/scraper");
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }
@@ -60,7 +61,10 @@ exports.searchProducts = functions.https.onCall(async (data, context) => {
             log(`[DEBUG] First match title: ${firstData.title}`);
             log(`[DEBUG] First match titleLower: ${firstData.titleLower}`);
         }
-        const products = matchingDocs.slice(0, 20).map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const products = matchingDocs.slice(0, 20).map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
         return products;
     }
     catch (error) {
@@ -96,53 +100,43 @@ exports.search = functions.region("asia-northeast3").https.onRequest(async (req,
         return;
     }
     try {
-        const query = req.query.q || "";
+        const query = String(req.query?.q || req.query?.query || "").trim();
         const region = req.query.region || "global";
         functions.logger.info("HTTP Search request", { query, region });
         if (!query) {
             res.status(400).json({ error: "Missing query parameter 'q'" });
             return;
         }
-        // 1단계: 스크래퍼 서비스에서 실시간 검색 시도
-        const SCRAPER_BASE_URL = process.env.SCRAPER_BASE_URL ||
-            "https://pricebuddy-scraper-206606594412.asia-northeast3.run.app";
+        // 1단계: 스크래퍼 서비스 호출은 GA 정식 스크래퍼로 대체됨 (Cloud Run 경로 404 이슈로 비활성화)
         let scraperResults = [];
-        if (SCRAPER_BASE_URL && SCRAPER_BASE_URL !== "http://localhost:8080") {
-            try {
-                functions.logger.info("Calling scraper service", { url: SCRAPER_BASE_URL, query });
-                const scraperResponse = await fetch(`${SCRAPER_BASE_URL}/search`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        query,
-                        marketplaces: region === "kr" ? ["coupang", "naver"] : ["coupang", "naver", "amazon_us"],
-                        limit: 20
-                    }),
-                });
-                if (scraperResponse.ok) {
-                    const scraperData = await scraperResponse.json();
-                    scraperResults = (scraperData.results || []).map((item) => {
-                        var _a, _b;
-                        return ({
-                            productId: `temp-${Date.now()}-${Math.random()}`,
-                            title: item.title || "",
-                            imageUrl: item.imageUrl || "",
-                            minPriceKrw: item.price ? (item.currency === "KRW" ? item.price : item.price * 1300) : 0,
-                            maxPriceKrw: item.price ? (item.currency === "KRW" ? item.price : item.price * 1300) : 0,
-                            priceChangePct: 0,
-                            url: item.url || ((_a = item.attributes) === null || _a === void 0 ? void 0 : _a.url),
-                            marketplace: item.marketplace || ((_b = item.attributes) === null || _b === void 0 ? void 0 : _b.marketplace),
-                        });
-                    });
-                    functions.logger.info(`Scraper returned ${scraperResults.length} results`);
+        // GA ScraperService (in-repo merchant adapters)
+        try {
+            const r = String(region || "global").toUpperCase();
+            const regions = (r === "GLOBAL" || r === "ALL") ? ["KR", "JP"] : [r];
+            const resultsAll = [];
+            for (const rr of regions) {
+                try {
+                    const part = await scraper_1.ScraperService.search(String(query || ""), rr);
+                    if (Array.isArray(part))
+                        resultsAll.push(...part);
                 }
-                else {
-                    functions.logger.warn("Scraper service returned error", { status: scraperResponse.status });
-                }
+                catch (e) { }
             }
-            catch (scraperError) {
-                functions.logger.warn("Scraper service call failed, falling back to Firestore", { error: scraperError.message });
-            }
+            const products = resultsAll;
+            scraperResults = (products || []).map((item) => ({
+                productId: item.productId || item.id || `m-${Date.now()}-${Math.random()}`,
+                title: item.title || item.name || "",
+                imageUrl: item.imageUrl || item.image || item.image_url || "",
+                minPriceKrw: item.minPriceKrw || item.priceKrw || item.price || 0,
+                maxPriceKrw: item.maxPriceKrw || item.priceKrw || item.price || 0,
+                priceChangePct: item.priceChangePct || 0,
+                url: item.url || item.link,
+                marketplace: item.marketplace || item.merchant || item.source,
+            })).filter((x) => x.title);
+            functions.logger.info(`GA ScraperService returned ${scraperResults.length} results`);
+        }
+        catch (e) {
+            functions.logger.warn("GA ScraperService failed, falling back to Firestore", { error: e?.message || String(e) });
         }
         // 2단계: Firestore에서도 검색 (스크래퍼 결과가 없거나 보완)
         const queryLower = query.toLowerCase();
@@ -263,7 +257,11 @@ exports.seedProducts = functions.region("asia-northeast3").https.onRequest(async
         const batch = admin.firestore().batch();
         for (const product of IPHONE_PRODUCTS) {
             const ref = admin.firestore().collection("products").doc();
-            batch.set(ref, Object.assign(Object.assign({}, product), { createdAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp() }));
+            batch.set(ref, {
+                ...product,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
             // 샘플 offers 추가 (실제 URL은 나중에 스크래퍼로 채워짐)
             // 주의: 가짜 URL이므로 실제로는 스크래퍼에서 가져온 URL을 사용해야 함
             const sampleOffers = [
@@ -305,7 +303,11 @@ exports.seedProducts = functions.region("asia-northeast3").https.onRequest(async
             ];
             for (const offer of sampleOffers) {
                 const offerRef = ref.collection("offers").doc();
-                batch.set(offerRef, Object.assign(Object.assign({}, offer), { productId: ref.id, createdAt: admin.firestore.FieldValue.serverTimestamp() }));
+                batch.set(offerRef, {
+                    ...offer,
+                    productId: ref.id,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
             }
             // 샘플 가격 히스토리 추가
             const today = new Date();
@@ -361,7 +363,11 @@ exports.seedProducts = functions.region("asia-northeast3").https.onRequest(async
                 ];
                 for (const offer of sampleOffers) {
                     const offerRef = productDoc.ref.collection("offers").doc();
-                    updateBatch.set(offerRef, Object.assign(Object.assign({}, offer), { productId: productDoc.id, createdAt: admin.firestore.FieldValue.serverTimestamp() }));
+                    updateBatch.set(offerRef, {
+                        ...offer,
+                        productId: productDoc.id,
+                        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    });
                     offersAdded++;
                 }
                 // 가격 히스토리도 추가
@@ -399,4 +405,3 @@ exports.seedProducts = functions.region("asia-northeast3").https.onRequest(async
         res.status(500).json({ error: "Seed failed", message: error.message });
     }
 });
-//# sourceMappingURL=search.js.map

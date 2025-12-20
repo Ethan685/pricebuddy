@@ -69,7 +69,7 @@ export const collectPopularProducts = functions.region("asia-northeast3").https.
 
                 if (response.ok) {
                     const data = await response.json();
-                    searchResults = data.results || [];
+                    searchResults = (data as any).results || [];
                     functions.logger.info(`Found ${searchResults.length} products from scraper`);
                 }
             } catch (error: any) {

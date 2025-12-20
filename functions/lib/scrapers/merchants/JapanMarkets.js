@@ -19,16 +19,19 @@ class YahooJapanAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             return [{
                     id: 'YJ001',
                     title: 'iPhone 17 128GB SIM Free - Yahoo Japan',
-                    price: 135800,
+                    price: 135800, // ~1.2M KRW
                     currency: 'JPY',
                     merchantName: this.name,
                     region: this.region,
                     productUrl: 'https://shopping.yahoo.co.jp/products/YJ001',
-                    image: 'https://img.danawa.com/prod_img/500000/598/086/img/18086598_1.jpg?shrink=330:*&_v=20231018163558',
+                    image: 'https://img.danawa.com/prod_img/500000/598/086/img/18086598_1.jpg?shrink=330:*&_v=20231018163558', // Another variant image
                     inStock: true,
                     rating: 4.6,
                     reviewCount: 1234
-                }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+                }].map(p => ({
+                ...p,
+                affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+            }));
         }
         return [{
                 id: 'YJ001',
@@ -42,7 +45,10 @@ class YahooJapanAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.6,
                 reviewCount: 1234
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -63,7 +69,7 @@ class YahooJapanAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('sc_i', sid);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return productUrl;
         }
     }
@@ -93,7 +99,10 @@ class AmazonJPAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.7,
                 reviewCount: 2109
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -114,7 +123,7 @@ class AmazonJPAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('tag', tag);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return `${productUrl}?tag=${tag}`;
         }
     }
@@ -136,7 +145,7 @@ class MercariJPAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
         return [{
                 id: 'MER001',
                 title: 'iPhone 17 Pro Max 256GB - Clean Condition',
-                price: 189000,
+                price: 189000, // ~1.6M KRW
                 currency: 'JPY',
                 merchantName: this.name,
                 region: this.region,
@@ -145,7 +154,10 @@ class MercariJPAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.8,
                 reviewCount: 543
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -186,7 +198,10 @@ class Qoo10JPAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.4,
                 reviewCount: 876
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -207,10 +222,9 @@ class Qoo10JPAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('jaehuid', affiliateId);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return productUrl;
         }
     }
 }
 exports.Qoo10JPAdapter = Qoo10JPAdapter;
-//# sourceMappingURL=JapanMarkets.js.map

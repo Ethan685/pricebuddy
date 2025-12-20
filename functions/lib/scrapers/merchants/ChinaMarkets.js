@@ -25,7 +25,10 @@ class TaobaoAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.8,
                 reviewCount: 5432
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -69,7 +72,10 @@ class JDAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.9,
                 reviewCount: 3210
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -112,7 +118,10 @@ class TmallAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.7,
                 reviewCount: 2876
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -132,4 +141,3 @@ class TmallAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.TmallAdapter = TmallAdapter;
-//# sourceMappingURL=ChinaMarkets.js.map

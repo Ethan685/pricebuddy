@@ -25,7 +25,10 @@ class ShopeeAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.8,
                 reviewCount: 3214
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -68,7 +71,10 @@ class TokopediaAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.7,
                 reviewCount: 1876
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -112,7 +118,10 @@ class BukalapakAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.6,
                 reviewCount: 1432
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -152,7 +161,10 @@ class TikiAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.5,
                 reviewCount: 987
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -172,4 +184,3 @@ class TikiAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.TikiAdapter = TikiAdapter;
-//# sourceMappingURL=SEAMarkets.js.map

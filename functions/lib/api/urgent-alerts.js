@@ -93,7 +93,7 @@ async function sendUrgentPriceAlert(productId, productTitle, oldPrice, newPrice,
             });
             // Send FCM push notification
             const userData = userDoc.data();
-            const fcmToken = userData === null || userData === void 0 ? void 0 : userData.fcmToken;
+            const fcmToken = userData?.fcmToken;
             if (fcmToken) {
                 try {
                     await admin.messaging().send({
@@ -158,12 +158,12 @@ exports.createFlashDeal = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('not-found', 'Product not found');
     }
     const product = productDoc.data();
-    const originalPrice = (product === null || product === void 0 ? void 0 : product.minPrice) || 0;
+    const originalPrice = product?.minPrice || 0;
     const flashPrice = Math.round(originalPrice * (1 - discountPercentage / 100));
     // Create flash deal
     await db.collection('flash_deals').add({
         productId,
-        productTitle: product === null || product === void 0 ? void 0 : product.title,
+        productTitle: product?.title,
         originalPrice,
         flashPrice,
         discountPercentage,
@@ -180,7 +180,7 @@ exports.createFlashDeal = functions.https.onCall(async (data, context) => {
             type: 'flash_deal',
             priority: 'high',
             title: '⚡️ 플래시 딜 시작!',
-            message: `${product === null || product === void 0 ? void 0 : product.title} - ${durationMinutes}분간 ${discountPercentage}% 할인!`,
+            message: `${product?.title} - ${durationMinutes}분간 ${discountPercentage}% 할인!`,
             data: { productId, flashPrice, endsAt: new Date(Date.now() + durationMinutes * 60 * 1000).toISOString() },
             urgent: true,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -188,4 +188,3 @@ exports.createFlashDeal = functions.https.onCall(async (data, context) => {
     }
     return { success: true, flashPrice };
 });
-//# sourceMappingURL=urgent-alerts.js.map

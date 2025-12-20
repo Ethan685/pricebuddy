@@ -1,5 +1,5 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "./Button";
-import { useLanguage } from "@/shared/context/LanguageContext";
 
 interface ErrorStateProps {
   message?: string;
@@ -7,15 +7,15 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({ message, onRetry }: ErrorStateProps) {
-  const { t } = useLanguage();
-  const errorMessage = message || t("common.error");
+  const { t } = useTranslation();
+  const errorMessage = message || t("common.error", { defaultValue: "An error occurred" });
   
   return (
     <div className="flex flex-col items-center justify-center py-12">
       <div className="text-red-400 text-lg mb-4">{errorMessage}</div>
       {onRetry && (
         <Button onClick={onRetry} variant="secondary">
-          {t("common.retry")}
+          {t("common.retry", { defaultValue: "Retry" })}
         </Button>
       )}
     </div>

@@ -1,20 +1,24 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import tsconfigPaths from "vite-tsconfig-paths";
+import path from "node:path";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tsconfigPaths()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "src"),
     },
   },
   server: {
-    port: 5173,
-    host: true,
+    proxy: {
+      // GA 구조: 단일 /api/* 엔트리 포인트
+      "/api": {
+        target: "http://127.0.0.1:5001",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (p) => p.replace(/^\/api/, "/pricebuddy-5a869/asia-northeast3/api"),
+      },
+    },
   },
 });
-

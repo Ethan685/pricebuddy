@@ -22,17 +22,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __rest = (this && this.__rest) || function (s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const admin = __importStar(require("firebase-admin"));
 // Initialize Admin SDK
@@ -127,7 +116,7 @@ const seedData = async () => {
         }
     ];
     for (const p of products) {
-        const { offers } = p, productData = __rest(p, ["offers"]);
+        const { offers, ...productData } = p;
         // Create Product
         await db.collection("products").doc(p.id).set(productData);
         console.log(`Created product: ${p.title}`);
@@ -140,4 +129,3 @@ const seedData = async () => {
     console.log("Seeding complete!");
 };
 seedData().catch(console.error);
-//# sourceMappingURL=seed_data.js.map

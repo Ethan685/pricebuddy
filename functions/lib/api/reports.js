@@ -68,7 +68,7 @@ exports.generateB2BReport = functions.https.onCall(async (data, context) => {
     const userSnap = await userRef.get();
     const userData = userSnap.data();
     // Allow if role is enterprise OR admin
-    if ((userData === null || userData === void 0 ? void 0 : userData.role) !== 'enterprise' && (userData === null || userData === void 0 ? void 0 : userData.role) !== 'admin') {
+    if (userData?.role !== 'enterprise' && userData?.role !== 'admin') {
         throw new functions.https.HttpsError("permission-denied", "Enterprise plan required.");
     }
     try {
@@ -90,7 +90,7 @@ exports.generateB2BReport = functions.https.onCall(async (data, context) => {
             stats = snap.docs.map(d => ({
                 title: d.data().title,
                 minPrice: d.data().minPrice,
-                avgPrice: d.data().minPrice * 1.1,
+                avgPrice: d.data().minPrice * 1.1, // Mock
                 merchantCount: 5 // Mock
             }));
         }
@@ -119,7 +119,7 @@ exports.generateB2BReport = functions.https.onCall(async (data, context) => {
             createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
         return {
-            url: fileData,
+            url: fileData, // Data URI for direct download
             items: stats.length
         };
     }
@@ -128,4 +128,3 @@ exports.generateB2BReport = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("internal", "Report generation failed");
     }
 });
-//# sourceMappingURL=reports.js.map

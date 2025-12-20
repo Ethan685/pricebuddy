@@ -44,4 +44,3 @@ async function verifyData() {
     }
 }
 verifyData().catch(console.error);
-//# sourceMappingURL=verify_data.js.map

@@ -76,4 +76,3 @@ exports.getAvailableMerchants = functions.https.onCall(async (data, context) => 
         countryCode: m.countryCode
     }));
 });
-//# sourceMappingURL=search-global.js.map

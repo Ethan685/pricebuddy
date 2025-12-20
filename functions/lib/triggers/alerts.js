@@ -97,7 +97,7 @@ exports.checkPriceAlerts = functions
             });
             notifications.push(notification);
             // 이메일 알림 발송 (사용자 이메일이 있는 경우)
-            if (user === null || user === void 0 ? void 0 : user.email) {
+            if (user?.email) {
                 try {
                     // TODO: 실제 이메일 발송 로직 구현
                     functions.logger.info(`Would send email to ${user.email} for product ${productId}`);
@@ -107,7 +107,7 @@ exports.checkPriceAlerts = functions
                 }
             }
             // FCM 푸시 알림 발송 (FCM 토큰이 있는 경우)
-            if (user === null || user === void 0 ? void 0 : user.fcmToken) {
+            if (user?.fcmToken) {
                 try {
                     const messaging = admin.messaging();
                     await messaging.send({
@@ -141,4 +141,3 @@ exports.checkPriceAlerts = functions
         functions.logger.error("Error processing alerts", error);
     }
 });
-//# sourceMappingURL=alerts.js.map

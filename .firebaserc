@@ -1,6 +1,7 @@
 {
   "projects": {
-    "default": "pricebuddy-5a869"
+    "default": "pricebuddy-5a869",
+    "prod": "pricebuddy-5a869"
   },
   "targets": {},
   "etags": {}

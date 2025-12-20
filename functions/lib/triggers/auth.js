@@ -30,11 +30,10 @@ if (admin.apps.length === 0) {
     admin.initializeApp();
 }
 exports.createUserProfile = functions.auth.user().onCreate(async (user) => {
-    var _a, _b;
     const db = admin.firestore();
     // Fraud ML Mock
     let fraudScore = Math.floor(Math.random() * 10); // Base low risk
-    if (((_a = user.email) === null || _a === void 0 ? void 0 : _a.includes('spam')) || ((_b = user.email) === null || _b === void 0 ? void 0 : _b.includes('test'))) {
+    if (user.email?.includes('spam') || user.email?.includes('test')) {
         fraudScore = 95; // High risk mock
     }
     const userProfile = {
@@ -67,4 +66,3 @@ exports.createUserProfile = functions.auth.user().onCreate(async (user) => {
         functions.logger.error(`Error creating profile for ${user.uid}`, error);
     }
 });
-//# sourceMappingURL=auth.js.map

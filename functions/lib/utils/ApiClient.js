@@ -20,8 +20,7 @@ class ApiClient {
      * @param config - Retry configuration
      */
     async fetchWithRetry(fn, rateLimitKey, config = {}) {
-        var _a;
-        const cfg = Object.assign(Object.assign({}, DEFAULT_RETRY_CONFIG), config);
+        const cfg = { ...DEFAULT_RETRY_CONFIG, ...config };
         let lastError = null;
         for (let attempt = 0; attempt < cfg.maxRetries; attempt++) {
             try {
@@ -35,7 +34,7 @@ class ApiClient {
             catch (error) {
                 lastError = error;
                 // Check if error is retryable
-                const status = ((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) || error.status;
+                const status = error.response?.status || error.status;
                 const isRetryable = cfg.retryableStatuses.includes(status);
                 if (!isRetryable || attempt === cfg.maxRetries - 1) {
                     // Not retryable or max retries reached
@@ -104,4 +103,3 @@ class ApiClient {
 exports.ApiClient = ApiClient;
 // Singleton instance
 exports.apiClient = new ApiClient();
-//# sourceMappingURL=ApiClient.js.map

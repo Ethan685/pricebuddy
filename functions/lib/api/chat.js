@@ -39,7 +39,7 @@ async function searchProducts(query) {
     // Basic fuzzy search simulation or actual FS query
     // In real app, vector search is better
     const snap = await db.collection('products').get(); // Costly in prod, acceptable for MVP demo
-    const allProducts = snap.docs.map(d => (Object.assign({ id: d.id }, d.data())));
+    const allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     // Simple filter
     const keywords = query.toLowerCase().split(' ');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,7 +50,6 @@ async function searchProducts(query) {
     return results.slice(0, 3);
 }
 exports.chatWithAI = functions.https.onCall(async (data, context) => {
-    var _a;
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -69,10 +68,10 @@ exports.chatWithAI = functions.https.onCall(async (data, context) => {
         JSON_START:[{"query": "search term"}]JSON_END
         `;
         const chat = model.startChat({
-            history: (history === null || history === void 0 ? void 0 : history.map((h) => ({
+            history: history?.map((h) => ({
                 role: h.role === 'user' ? 'user' : 'model',
                 parts: [{ text: h.parts }]
-            }))) || [],
+            })) || [],
             generationConfig: {
                 maxOutputTokens: 500,
             }
@@ -88,7 +87,7 @@ exports.chatWithAI = functions.https.onCall(async (data, context) => {
         if (jsonMatch) {
             try {
                 const command = JSON.parse(jsonMatch[1]);
-                if ((_a = command[0]) === null || _a === void 0 ? void 0 : _a.query) {
+                if (command[0]?.query) {
                     products = await searchProducts(command[0].query);
                     if (products.length > 0) {
                         finalResponse += `\n\nI found some top deals for you:`;
@@ -138,4 +137,3 @@ async function fallbackRegexChat(message) {
         products: []
     };
 }
-//# sourceMappingURL=chat.js.map

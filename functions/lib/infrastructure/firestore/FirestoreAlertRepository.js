@@ -32,7 +32,10 @@ class FirestoreAlertRepository {
     }
     async createAlert(alertData) {
         const docRef = this.collection.doc();
-        await docRef.set(Object.assign(Object.assign({}, alertData), { createdAt: admin.firestore.FieldValue.serverTimestamp() }));
+        await docRef.set({
+            ...alertData,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
         return docRef.id;
     }
     async getAlertsByUserId(userId) {
@@ -41,10 +44,13 @@ class FirestoreAlertRepository {
             .where('isActive', '==', true)
             .orderBy('createdAt', 'desc')
             .get();
-        return snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
     }
     async updateAlert(id, updates) {
-        const updateData = Object.assign({}, updates);
+        const updateData = { ...updates };
         if (updates.updatedAt) {
             updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
         }
@@ -60,8 +66,10 @@ class FirestoreAlertRepository {
         if (snapshot.empty)
             return null;
         const doc = snapshot.docs[0];
-        return Object.assign({ id: doc.id }, doc.data());
+        return {
+            id: doc.id,
+            ...doc.data()
+        };
     }
 }
 exports.FirestoreAlertRepository = FirestoreAlertRepository;
-//# sourceMappingURL=FirestoreAlertRepository.js.map

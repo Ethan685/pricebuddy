@@ -67,31 +67,29 @@ class AmazonUSAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
         }
     }
     parseAmazonResponse(response) {
-        var _a;
-        if (!((_a = response.SearchResult) === null || _a === void 0 ? void 0 : _a.Items)) {
+        if (!response.SearchResult?.Items) {
             return [];
         }
         return response.SearchResult.Items
             .map((item) => {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u;
-            const price = ((_d = (_c = (_b = (_a = item.Offers) === null || _a === void 0 ? void 0 : _a.Listings) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.Price) === null || _d === void 0 ? void 0 : _d.Amount) || 0;
+            const price = item.Offers?.Listings?.[0]?.Price?.Amount || 0;
             if (!PriceValidator_1.priceValidator.validate(price, 'USD')) {
                 return null;
             }
             return {
                 id: item.ASIN,
-                title: ((_f = (_e = item.ItemInfo) === null || _e === void 0 ? void 0 : _e.Title) === null || _f === void 0 ? void 0 : _f.DisplayValue) || 'Unknown',
+                title: item.ItemInfo?.Title?.DisplayValue || 'Unknown',
                 price,
                 currency: 'USD',
                 merchantName: this.name,
                 region: this.region,
                 productUrl: item.DetailPageURL,
-                imageUrl: (_j = (_h = (_g = item.Images) === null || _g === void 0 ? void 0 : _g.Primary) === null || _h === void 0 ? void 0 : _h.Large) === null || _j === void 0 ? void 0 : _j.URL,
-                inStock: ((_o = (_m = (_l = (_k = item.Offers) === null || _k === void 0 ? void 0 : _k.Listings) === null || _l === void 0 ? void 0 : _l[0]) === null || _m === void 0 ? void 0 : _m.Availability) === null || _o === void 0 ? void 0 : _o.Type) === 'Now',
-                affiliateUrl: item.DetailPageURL,
-                rating: (_q = (_p = item.CustomerReviews) === null || _p === void 0 ? void 0 : _p.StarRating) === null || _q === void 0 ? void 0 : _q.Value,
-                reviewCount: (_r = item.CustomerReviews) === null || _r === void 0 ? void 0 : _r.Count,
-                brand: (_u = (_t = (_s = item.ItemInfo) === null || _s === void 0 ? void 0 : _s.ByLineInfo) === null || _t === void 0 ? void 0 : _t.Brand) === null || _u === void 0 ? void 0 : _u.DisplayValue
+                imageUrl: item.Images?.Primary?.Large?.URL,
+                inStock: item.Offers?.Listings?.[0]?.Availability?.Type === 'Now',
+                affiliateUrl: item.DetailPageURL, // Already affiliate link
+                rating: item.CustomerReviews?.StarRating?.Value,
+                reviewCount: item.CustomerReviews?.Count,
+                brand: item.ItemInfo?.ByLineInfo?.Brand?.DisplayValue
             };
         })
             .filter((p) => p !== null);
@@ -119,7 +117,7 @@ class AmazonUSAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('tag', this.partnerTag);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return `${productUrl}?tag=${this.partnerTag}`;
         }
     }
@@ -141,4 +139,3 @@ class AmazonUSAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.AmazonUSAdapter = AmazonUSAdapter;
-//# sourceMappingURL=AmazonUS.js.map

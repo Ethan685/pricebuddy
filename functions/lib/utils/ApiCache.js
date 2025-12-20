@@ -130,7 +130,8 @@ class ApiCache {
         // Evict oldest if at capacity
         if (this.memoryCache.size >= this.MAX_MEMORY_ITEMS) {
             const firstKey = this.memoryCache.keys().next().value;
-            this.memoryCache.delete(firstKey);
+            if (firstKey)
+                this.memoryCache.delete(firstKey);
         }
         this.memoryCache.set(key, data);
     }
@@ -148,4 +149,3 @@ class ApiCache {
 exports.ApiCache = ApiCache;
 // Singleton instance
 exports.apiCache = new ApiCache();
-//# sourceMappingURL=ApiCache.js.map

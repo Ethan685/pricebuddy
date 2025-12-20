@@ -1,55 +1,38 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from "react";
-import { Language, getLanguage, setLanguage as setLang, translations, SUPPORTED_LANGUAGES } from "../lib/i18n";
+import type { ReactNode } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
-interface LanguageContextType {
+import i18n, { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from "../lib/i18n";
+import type { Language } from "../lib/i18n";
+
+type LanguageContextValue = {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
-  supportedLanguages: Language[];
-}
+  supported: readonly Language[];
+};
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(getLanguage());
+  const [language, _setLanguage] = useState<Language>(() => {
+    const saved = (localStorage.getItem("pricebuddy_lang") || "") as Language;
+    return (SUPPORTED_LANGUAGES as readonly string[]).includes(saved) ? saved : DEFAULT_LANGUAGE;
+  });
 
-  const handleSetLanguage = (lang: Language) => {
-    setLang(lang);
-    setLanguageState(lang);
-    document.documentElement.lang = lang;
+  const setLanguage = (lang: Language) => {
+    _setLanguage(lang);
+    localStorage.setItem("pricebuddy_lang", lang);
+    i18n.changeLanguage(lang);
   };
 
-  // 현재 언어에 맞는 t 함수 생성
-  const t = useMemo(() => {
-    return (key: string): string => {
-      return translations[language]?.[key] || translations.ko[key] || key;
-    };
+  const value = useMemo<LanguageContextValue>(() => {
+    return { language, setLanguage, supported: SUPPORTED_LANGUAGES };
   }, [language]);
 
-  // 초기 언어 설정
-  useEffect(() => {
-    document.documentElement.lang = language;
-  }, [language]);
-
-  return (
-    <LanguageContext.Provider
-      value={{
-        language,
-        setLanguage: handleSetLanguage,
-        t,
-        supportedLanguages: SUPPORTED_LANGUAGES,
-      }}
-    >
-      {children}
-    </LanguageContext.Provider>
-  );
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {
-  const context = useContext(LanguageContext);
-  if (context === undefined) {
-    throw new Error("useLanguage must be used within LanguageProvider");
-  }
-  return context;
+  const ctx = useContext(LanguageContext);
+  if (!ctx) throw new Error("useLanguage must be used within <LanguageProvider>");
+  return ctx;
 }
-

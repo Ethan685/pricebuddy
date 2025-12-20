@@ -19,14 +19,13 @@ const weaviateClient = weaviate_ts_client_1.default.client({
 });
 // Schema definition (run once or check on startup)
 const initSchema = async () => {
-    var _a;
     const classObj = {
         class: 'Product',
-        vectorizer: 'none',
+        vectorizer: 'none', // We provide vectors manually from OpenAI
         properties: [
             { name: 'title', dataType: ['text'] },
             { name: 'productId', dataType: ['string'] },
-            { name: 'source', dataType: ['string'] },
+            { name: 'source', dataType: ['string'] }, // Amazon, Coupang, etc.
             { name: 'price', dataType: ['number'] },
             { name: 'currency', dataType: ['string'] },
             { name: 'url', dataType: ['string'] },
@@ -34,7 +33,7 @@ const initSchema = async () => {
     };
     try {
         const schema = await weaviateClient.schema.getter().do();
-        const exists = (_a = schema.classes) === null || _a === void 0 ? void 0 : _a.some((c) => c.class === 'Product');
+        const exists = schema.classes?.some((c) => c.class === 'Product');
         if (!exists) {
             await weaviateClient.schema.classCreator().withClass(classObj).do();
             console.log('Weaviate Schema "Product" created.');
@@ -118,4 +117,3 @@ const queryIndex = async (queryText, limit = 5) => {
     }
 };
 exports.queryIndex = queryIndex;
-//# sourceMappingURL=vector.js.map

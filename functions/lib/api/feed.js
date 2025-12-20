@@ -29,7 +29,6 @@ const admin = __importStar(require("firebase-admin"));
 const FirestoreFeedRepository_1 = require("../infrastructure/firestore/FirestoreFeedRepository");
 const GetPersonalizedFeed_1 = require("../domain/usecases/GetPersonalizedFeed");
 exports.getUserFeed = functions.https.onCall(async (data, context) => {
-    var _a;
     functions.logger.info("Fetching user feed (Clean Arch)", data);
     try {
         const db = admin.firestore();
@@ -44,7 +43,7 @@ exports.getUserFeed = functions.https.onCall(async (data, context) => {
             const uid = context.auth.uid;
             functions.logger.info(`Personalizing for user: ${uid}`);
             const userDoc = await db.collection("users").doc(uid).get();
-            userPreferences = ((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.preferences) || null;
+            userPreferences = userDoc.data()?.preferences || null;
         }
         // 2. Execute Use Case
         const result = await getPersonalizedFeed.execute(userPreferences, limit);
@@ -62,4 +61,3 @@ exports.getUserFeed = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("internal", `Feed fetch failed: ${error instanceof Error ? error.message : String(error)}`);
     }
 });
-//# sourceMappingURL=feed.js.map

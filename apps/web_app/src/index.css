@@ -1,35 +1,70 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-bg-primary: #0B1117;
-  --color-bg-card: #161B22;
-  /* GitHub Dark Dimmed style for cards */
-  --color-bg-secondary: #0D1117;
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: radial-gradient(1200px 800px at 20% 10%, rgba(79, 126, 255, 0.15), transparent 60%),
+              radial-gradient(1000px 600px at 80% 40%, rgba(18, 185, 129, 0.12), transparent 55%),
+              #060914;
+  color: rgba(255, 255, 255, 0.92);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--color-bg-primary);
-  background-image:
-    radial-gradient(circle at 15% 50%, rgba(79, 126, 255, 0.08), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(63, 185, 80, 0.08), transparent 25%);
-  color: #e6edf3;
-  min-height: 100vh;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: -0.02em;
+@layer utilities {
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .delay-\[200ms\] {
+    animation-delay: 200ms;
+  }
+  
+  .delay-\[400ms\] {
+    animation-delay: 400ms;
+  }
+  
+  .delay-\[600ms\] {
+    animation-delay: 600ms;
+  }
+  
+  .delay-\[800ms\] {
+    animation-delay: 800ms;
+  }
+  
+  .delay-\[1000ms\] {
+    animation-delay: 1000ms;
+  }
+  
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+  }
+  
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
 }

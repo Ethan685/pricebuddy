@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { Product } from "../types";
+import { ScraperService } from "../services/scraper";
 
 if (admin.apps.length === 0) {
     admin.initializeApp();
@@ -88,7 +89,7 @@ export const search = functions.region("asia-northeast3").https.onRequest(async 
     }
 
     try {
-        const query = req.query.q as string || "";
+        const query = String((req.query as any)?.q || (req.query as any)?.query || "").trim();
         const region = req.query.region as string || "global";
 
         functions.logger.info("HTTP Search request", { query, region });
@@ -97,45 +98,34 @@ export const search = functions.region("asia-northeast3").https.onRequest(async 
             res.status(400).json({ error: "Missing query parameter 'q'" });
             return;
         }
-
-        // 1단계: 스크래퍼 서비스에서 실시간 검색 시도
-        const SCRAPER_BASE_URL = process.env.SCRAPER_BASE_URL || 
-                                  "https://pricebuddy-scraper-206606594412.asia-northeast3.run.app";
-        
+        // 1단계: 스크래퍼 서비스 호출은 GA 정식 스크래퍼로 대체됨 (Cloud Run 경로 404 이슈로 비활성화)
         let scraperResults: any[] = [];
-        
-        if (SCRAPER_BASE_URL && SCRAPER_BASE_URL !== "http://localhost:8080") {
-            try {
-                functions.logger.info("Calling scraper service", { url: SCRAPER_BASE_URL, query });
-                const scraperResponse = await fetch(`${SCRAPER_BASE_URL}/search`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        query, 
-                        marketplaces: region === "kr" ? ["coupang", "naver"] : ["coupang", "naver", "amazon_us"],
-                        limit: 20 
-                    }),
-                });
 
-                if (scraperResponse.ok) {
-                    const scraperData = await scraperResponse.json();
-                    scraperResults = (scraperData.results || []).map((item: any) => ({
-                        productId: `temp-${Date.now()}-${Math.random()}`,
-                        title: item.title || "",
-                        imageUrl: item.imageUrl || "",
-                        minPriceKrw: item.price ? (item.currency === "KRW" ? item.price : item.price * 1300) : 0,
-                        maxPriceKrw: item.price ? (item.currency === "KRW" ? item.price : item.price * 1300) : 0,
-                        priceChangePct: 0,
-                        url: item.url || item.attributes?.url,
-                        marketplace: item.marketplace || item.attributes?.marketplace,
-                    }));
-                    functions.logger.info(`Scraper returned ${scraperResults.length} results`);
-                } else {
-                    functions.logger.warn("Scraper service returned error", { status: scraperResponse.status });
-                }
-            } catch (scraperError: any) {
-                functions.logger.warn("Scraper service call failed, falling back to Firestore", { error: scraperError.message });
+        // GA ScraperService (in-repo merchant adapters)
+        try {
+            const r = String(region || "global").toUpperCase();
+            const regions = (r === "GLOBAL" || r === "ALL") ? ["KR","JP"] : [r];
+            const resultsAll: any[] = [];
+            for (const rr of regions) {
+                try {
+                    const part = await ScraperService.search(String(query || ""), rr);
+                    if (Array.isArray(part)) resultsAll.push(...part);
+                } catch (e) {}
             }
+            const products = resultsAll;
+            scraperResults = (products || []).map((item: any) => ({
+                productId: item.productId || item.id || `m-${Date.now()}-${Math.random()}`,
+                title: item.title || item.name || "",
+                imageUrl: item.imageUrl || item.image || item.image_url || "",
+                minPriceKrw: item.minPriceKrw || item.priceKrw || item.price || 0,
+                maxPriceKrw: item.maxPriceKrw || item.priceKrw || item.price || 0,
+                priceChangePct: item.priceChangePct || 0,
+                url: item.url || item.link,
+                marketplace: item.marketplace || item.merchant || item.source,
+            })).filter((x: any) => x.title);
+            functions.logger.info(`GA ScraperService returned ${scraperResults.length} results`);
+        } catch (e: any) {
+            functions.logger.warn("GA ScraperService failed, falling back to Firestore", { error: e?.message || String(e) });
         }
 
         // 2단계: Firestore에서도 검색 (스크래퍼 결과가 없거나 보완)

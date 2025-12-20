@@ -26,12 +26,11 @@ export function PriceAlertButton({ productId, currentPrice }: PriceAlertButtonPr
 
     try {
       setLoading(true);
-      await httpPost("/alerts", {
-        userId: user.uid,
+      await httpPost("/api/alerts", {
         productId,
         targetPrice,
         currentPrice,
-        condition: "below",
+        email: user.email || undefined,
       });
       setIsSet(true);
       setIsOpen(false);

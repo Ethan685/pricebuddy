@@ -31,6 +31,24 @@ if (admin.apps.length === 0) {
 }
 // Helper to wrap affiliate links
 function wrapAffiliateLink(url, merchant) {
+    if (!url)
+        return "";
+    // 플레이스홀더 URL인 경우 검색 페이지로 리다이렉트
+    if (url.includes("/products/") && url.includes("smartstore.naver.com/products/") && !url.includes("?")) {
+        // 가짜 productId를 사용한 URL인 경우 검색 페이지로 변경
+        const titleMatch = url.match(/products\/([^/]+)$/);
+        if (titleMatch && titleMatch[1].length > 10) {
+            // productId처럼 보이는 경우 (길이가 10자 이상)
+            return `https://shopping.naver.com/search/all`;
+        }
+    }
+    if (url.includes("/vp/products/") && url.includes("coupang.com/vp/products/") && !url.includes("?")) {
+        // 가짜 productId를 사용한 URL인 경우 검색 페이지로 변경
+        const titleMatch = url.match(/products\/([^/]+)$/);
+        if (titleMatch && titleMatch[1].length > 10) {
+            return `https://www.coupang.com/np/search`;
+        }
+    }
     if (merchant.toLowerCase() === "amazon") {
         const separator = url.includes("?") ? "&" : "?";
         return `${url}${separator}tag=pricebuddy-20`;
@@ -53,13 +71,16 @@ exports.getProductDetails = functions.https.onCall(async (data, context) => {
         if (!productDoc.exists) {
             throw new functions.https.HttpsError("not-found", "Product not found");
         }
-        const product = Object.assign({ id: productDoc.id }, productDoc.data());
+        const product = { id: productDoc.id, ...productDoc.data() };
         // 2. Fetch Offers
         const offersSnap = await db.collection("products").doc(productId).collection("offers").get();
         const offers = offersSnap.docs.map(doc => {
             const d = doc.data();
-            return Object.assign(Object.assign({ id: doc.id }, d), { url: wrapAffiliateLink(d.url, d.merchant) // Inject Affiliate Tag
-             });
+            return {
+                id: doc.id,
+                ...d,
+                url: wrapAffiliateLink(d.url, d.merchant) // Inject Affiliate Tag
+            };
         });
         // 3. Fetch Price History (Real Data)
         const historySnap = await db.collection("products").doc(productId).collection("price_history")
@@ -70,7 +91,7 @@ exports.getProductDetails = functions.https.onCall(async (data, context) => {
             const d = doc.data();
             return {
                 productId: product.id,
-                timestamp: d.date,
+                timestamp: d.date, // Use stored date string
                 price: d.price,
                 merchant: d.lowestMerchant || "Market"
             };
@@ -123,16 +144,21 @@ exports.getProduct = functions.region("asia-northeast3").https.onRequest(async (
             res.status(404).json({ error: "Product not found" });
             return;
         }
-        const product = Object.assign({ id: productDoc.id }, productDoc.data());
+        const product = { id: productDoc.id, ...productDoc.data() };
         // 2. Fetch Offers
         const offersSnap = await db.collection("products").doc(productId).collection("offers").get();
         const offers = offersSnap.docs.map(doc => {
             const d = doc.data();
             const price = d.totalPrice || d.price || 0;
             const shippingFee = d.shippingFee || 0;
-            return Object.assign(Object.assign({ id: doc.id }, d), { url: wrapAffiliateLink(d.url || "", d.merchant || d.merchantName || ""), 
+            return {
+                id: doc.id,
+                ...d,
+                url: wrapAffiliateLink(d.url || "", d.merchant || d.merchantName || ""),
                 // 웹 앱 호환성을 위한 필드 추가
-                totalPriceKrw: price, shippingFeeKrw: shippingFee });
+                totalPriceKrw: price,
+                shippingFeeKrw: shippingFee,
+            };
         });
         // 3. Fetch Price History
         const historySnap = await db.collection("products").doc(productId).collection("price_history")
@@ -140,11 +166,10 @@ exports.getProduct = functions.region("asia-northeast3").https.onRequest(async (
             .limit(30)
             .get();
         const priceHistory = historySnap.docs.map(doc => {
-            var _a, _b, _c;
             const d = doc.data();
             return {
                 productId: product.id,
-                timestamp: ((_c = (_b = (_a = d.timestamp) === null || _a === void 0 ? void 0 : _a.toDate) === null || _b === void 0 ? void 0 : _b.call(_a)) === null || _c === void 0 ? void 0 : _c.toISOString()) || d.date || d.timestamp,
+                timestamp: d.timestamp?.toDate?.()?.toISOString() || d.date || d.timestamp,
                 price: d.price,
                 merchant: d.lowestMerchant || "Market"
             };
@@ -164,4 +189,3 @@ exports.getProduct = functions.region("asia-northeast3").https.onRequest(async (
         res.status(500).json({ error: "Failed to fetch product details", message: error.message });
     }
 });
-//# sourceMappingURL=details.js.map

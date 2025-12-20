@@ -35,7 +35,7 @@ class ElevenStreetAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('affiliate_id', this.affiliateId);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return `${productUrl}?affiliate_id=${this.affiliateId}`;
         }
     }
@@ -138,4 +138,3 @@ class AuctionAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.AuctionAdapter = AuctionAdapter;
-//# sourceMappingURL=KoreaMarkets.js.map

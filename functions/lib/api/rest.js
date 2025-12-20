@@ -73,7 +73,10 @@ exports.apiGetProduct = functions.https.onRequest(async (req, res) => {
             return;
         }
         const productData = productSnap.data();
-        res.status(200).json(Object.assign({ id: productSnap.id }, productData));
+        res.status(200).json({
+            id: productSnap.id,
+            ...productData
+        });
     }
     catch (error) {
         functions.logger.error('API: Get product failed', error);
@@ -112,10 +115,10 @@ exports.apiGetPrices = functions.https.onRequest(async (req, res) => {
             .orderBy('timestamp', 'desc')
             .limit(100)
             .get();
-        const prices = pricesSnap.docs.map(doc => {
-            var _a;
-            return (Object.assign(Object.assign({}, doc.data()), { timestamp: (_a = doc.data().timestamp) === null || _a === void 0 ? void 0 : _a.toDate().toISOString() }));
-        });
+        const prices = pricesSnap.docs.map(doc => ({
+            ...doc.data(),
+            timestamp: doc.data().timestamp?.toDate().toISOString()
+        }));
         res.status(200).json({
             productId,
             priceHistory: prices,
@@ -132,42 +135,68 @@ exports.apiGetPrices = functions.https.onRequest(async (req, res) => {
  * GET /api/v1/search?q=<query>&limit=<number>
  */
 exports.apiSearchProducts = functions.https.onRequest(async (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
+    res.setHeader("access-control-allow-origin", "*");
+    res.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
+    res.setHeader("access-control-allow-headers", "Content-Type, X-API-Key");
+    if (req.method === "OPTIONS") {
+        res.status(204).send("");
         return;
     }
-    const auth = await authenticateRestApi(req);
-    if (!auth.authenticated) {
-        res.status(401).json({ error: auth.error });
+    const qFromQuery = String(req.query?.q || req.query?.query || "").trim();
+    let q = qFromQuery;
+    if (!q) {
+        try {
+            const bodyAny = req.body;
+            if (bodyAny && typeof bodyAny === "object") {
+                q = String(bodyAny.q || bodyAny.query || "").trim();
+            }
+            else if (typeof bodyAny === "string" && bodyAny.trim()) {
+                const parsed = JSON.parse(bodyAny);
+                q = String(parsed?.q || parsed?.query || "").trim();
+            }
+            else if (req.rawBody) {
+                const raw = Buffer.isBuffer(req.rawBody) ? req.rawBody.toString("utf8") : String(req.rawBody);
+                if (raw.trim()) {
+                    const parsed = JSON.parse(raw);
+                    q = String(parsed?.q || parsed?.query || "").trim();
+                }
+            }
+        }
+        catch (_) { }
+    }
+    if (!q) {
+        res.status(400).json({ error: "Search query required" });
         return;
     }
-    const query = (req.query.q || '').toLowerCase();
-    const limit = parseInt(req.query.limit) || 20;
-    if (!query) {
-        res.status(400).json({ error: 'Search query required' });
-        return;
+    const region = String(req.query?.region || req?.body?.region || "KR").trim();
+    // 개발 환경(에뮬레이터)에서는 API 키 검증 우회
+    // 에뮬레이터는 localhost나 127.0.0.1에서 실행되므로 이를 확인
+    const isDevelopment = process.env.FUNCTIONS_EMULATOR === "true" ||
+        process.env.FIRESTORE_EMULATOR_HOST !== undefined ||
+        !process.env.GCLOUD_PROJECT ||
+        (req.headers.host && (req.headers.host.includes("localhost") || req.headers.host.includes("127.0.0.1")));
+    if (!isDevelopment) {
+        // 프로덕션 환경에서만 API 키 검증
+        try {
+            const apiKeyHeader = (req.get && req.get("x-api-key")) || (req.headers && req.headers["x-api-key"]) || "";
+            const apiKey = String(apiKeyHeader || "").trim();
+            const { valid } = await (0, apikeys_1.validateApiKey)(apiKey);
+            if (!valid) {
+                res.status(401).json({ error: "Invalid API key" });
+                return;
+            }
+        }
+        catch (e) {
+            res.status(401).json({ error: "Invalid API key" });
+            return;
+        }
     }
     try {
-        const productsSnap = await db.collection('products').get();
-        const matchingProducts = productsSnap.docs
-            .map(doc => (Object.assign({ id: doc.id }, doc.data())))
-            .filter((product) => {
-            const titleLower = (product.titleLower || '').toLowerCase();
-            return titleLower.includes(query);
-        })
-            .slice(0, limit);
-        res.status(200).json({
-            query,
-            results: matchingProducts,
-            count: matchingProducts.length
-        });
+        const results = await searchProducts({ q, region });
+        res.status(200).json({ ok: true, q, region, results });
     }
-    catch (error) {
-        functions.logger.error('API: Search failed', error);
-        res.status(500).json({ error: 'Internal server error' });
+    catch (e) {
+        res.status(500).json({ error: "Search failed", detail: String(e?.message || e) });
     }
 });
 /**
@@ -240,10 +269,11 @@ exports.apiListAlerts = functions.https.onRequest(async (req, res) => {
             .where('active', '==', true)
             .orderBy('createdAt', 'desc')
             .get();
-        const alerts = alertsSnap.docs.map(doc => {
-            var _a;
-            return (Object.assign(Object.assign({ id: doc.id }, doc.data()), { createdAt: (_a = doc.data().createdAt) === null || _a === void 0 ? void 0 : _a.toDate().toISOString() }));
-        });
+        const alerts = alertsSnap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate().toISOString()
+        }));
         res.status(200).json({ alerts, count: alerts.length });
     }
     catch (error) {
@@ -252,6 +282,13 @@ exports.apiListAlerts = functions.https.onRequest(async (req, res) => {
     }
 });
 const ViralShare_1 = require("../shared/ViralShare");
+require("./search-global");
+const index_1 = require("../services/scraper/index");
+async function searchProducts({ q, region }) {
+    const rr = String(region || "KR").toUpperCase() === "KR" ? "KR" : "GLOBAL";
+    const products = await index_1.ScraperService.search(String(q || ""), rr, 10);
+    return Array.isArray(products) ? products : [];
+}
 /**
  * REST API: Generate Creator Share Link
  * POST /api/v1/share/link
@@ -302,4 +339,3 @@ exports.apiCreateShareLink = functions.https.onRequest(async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
-//# sourceMappingURL=rest.js.map

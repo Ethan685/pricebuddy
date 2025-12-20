@@ -35,23 +35,20 @@ class WalmartAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 }
             });
             const data = await response.json();
-            return (data.items || []).map((item) => {
-                var _a;
-                return ({
-                    id: ((_a = item.itemId) === null || _a === void 0 ? void 0 : _a.toString()) || '',
-                    title: item.name || '',
-                    price: item.salePrice || item.msrp || 0,
-                    currency: this.currency,
-                    merchantName: this.name,
-                    region: this.region,
-                    productUrl: item.productUrl || '',
-                    affiliateUrl: item.affiliateAddToCartUrl || item.productUrl,
-                    imageUrl: item.thumbnailImage || item.mediumImage,
-                    inStock: item.stock === 'Available',
-                    rating: item.customerRating,
-                    reviewCount: item.numReviews
-                });
-            });
+            return ((data.items || [])).map((item) => ({
+                id: item.itemId?.toString() || '',
+                title: item.name || '',
+                price: item.salePrice || item.msrp || 0,
+                currency: this.currency,
+                merchantName: this.name,
+                region: this.region,
+                productUrl: item.productUrl || '',
+                affiliateUrl: item.affiliateAddToCartUrl || item.productUrl,
+                imageUrl: item.thumbnailImage || item.mediumImage,
+                inStock: item.stock === 'Available',
+                rating: item.customerRating,
+                reviewCount: item.numReviews
+            }));
         }
         catch (error) {
             console.error('Walmart search failed:', error);
@@ -71,7 +68,10 @@ class WalmartAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.3,
                 reviewCount: 890
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -95,7 +95,7 @@ class WalmartAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('wmlspartner', this.publisherId);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return productUrl;
         }
     }
@@ -104,4 +104,3 @@ class WalmartAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.WalmartAdapter = WalmartAdapter;
-//# sourceMappingURL=Walmart.js.map

@@ -73,4 +73,3 @@ exports.shareProduct = functions.https.onRequest(async (req, res) => {
         res.redirect("https://pricebuddy.web.app");
     }
 });
-//# sourceMappingURL=share.js.map

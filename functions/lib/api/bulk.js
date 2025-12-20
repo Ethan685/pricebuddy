@@ -45,7 +45,7 @@ exports.bulkImportSKUs = functions.https.onCall(async (data, context) => {
     const userRef = db.collection('users').doc(context.auth.uid);
     const userSnap = await userRef.get();
     const userData = userSnap.data();
-    if ((userData === null || userData === void 0 ? void 0 : userData.role) !== 'enterprise' && (userData === null || userData === void 0 ? void 0 : userData.role) !== 'admin') {
+    if (userData?.role !== 'enterprise' && userData?.role !== 'admin') {
         throw new functions.https.HttpsError('permission-denied', 'Enterprise plan required');
     }
     try {
@@ -100,7 +100,7 @@ exports.bulkImportSKUs = functions.https.onCall(async (data, context) => {
             totalRecords: records.length,
             successCount,
             errorCount: errors.length,
-            errors: errors.slice(0, 10),
+            errors: errors.slice(0, 10), // Store first 10 errors
             createdAt: timestamp
         });
         functions.logger.info(`Bulk import completed: ${successCount}/${records.length} SKUs imported`);
@@ -135,10 +135,11 @@ exports.getMonitoredSKUs = functions.https.onCall(async (data, context) => {
             .limit(limit)
             .offset(offset)
             .get();
-        const skus = skusSnap.docs.map(doc => {
-            var _a;
-            return (Object.assign(Object.assign({ id: doc.id }, doc.data()), { createdAt: (_a = doc.data().createdAt) === null || _a === void 0 ? void 0 : _a.toDate().toISOString() }));
-        });
+        const skus = skusSnap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate().toISOString()
+        }));
         return { skus, total: skus.length };
     }
     catch (error) {
@@ -164,7 +165,7 @@ exports.removeMonitoredSKU = functions.https.onCall(async (data, context) => {
             throw new functions.https.HttpsError('not-found', 'SKU not found');
         }
         const skuData = skuSnap.data();
-        if ((skuData === null || skuData === void 0 ? void 0 : skuData.userId) !== context.auth.uid) {
+        if (skuData?.userId !== context.auth.uid) {
             throw new functions.https.HttpsError('permission-denied', 'Not your SKU');
         }
         await skuRef.update({
@@ -178,4 +179,3 @@ exports.removeMonitoredSKU = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', 'Failed to remove SKU');
     }
 });
-//# sourceMappingURL=bulk.js.map

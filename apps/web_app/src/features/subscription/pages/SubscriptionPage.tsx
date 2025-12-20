@@ -85,13 +85,8 @@ export function SubscriptionPage() {
         success: boolean;
         paymentId: string;
         transactionId: string;
-      }>("/payment/subscribe", {
-        userId: user.uid,
+      }>("/api/payments/checkout", {
         planId,
-        amount: plan.price,
-        currency: "KRW",
-        customerEmail: user.email || "",
-        customerName: user.displayName || "",
       });
 
       if (result.success && result.paymentId) {

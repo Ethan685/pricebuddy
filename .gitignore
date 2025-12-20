@@ -66,6 +66,11 @@ Thumbs.db
 *.temp
 .cache/
 
+# Backup files
+*.bak.*
+*.backup
+*.bak
+
 # Emulator data
 emulator-data/
 firebase-debug.log
@@ -93,3 +98,8 @@ pnpm/
 
 # pnpm artifacts
 pnpm/
+
+keys/
+*.local
+.env
+.env.*

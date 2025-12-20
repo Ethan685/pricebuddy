@@ -64,7 +64,6 @@ class FirestoreReferralRepository {
     async attributeReferral(code, newUserId) {
         const docRef = this.collection.doc(code);
         await this.db.runTransaction(async (t) => {
-            var _a;
             const doc = await t.get(docRef);
             if (!doc.exists)
                 return; // Silent fail or throw?
@@ -76,7 +75,7 @@ class FirestoreReferralRepository {
             const attributionRef = this.db.collection('referral_attributions').doc();
             t.set(attributionRef, {
                 referralCode: code,
-                refererId: (_a = doc.data()) === null || _a === void 0 ? void 0 : _a.userId,
+                refererId: doc.data()?.userId,
                 refereeId: newUserId,
                 timestamp: admin.firestore.FieldValue.serverTimestamp()
             });
@@ -87,4 +86,3 @@ class FirestoreReferralRepository {
     }
 }
 exports.FirestoreReferralRepository = FirestoreReferralRepository;
-//# sourceMappingURL=FirestoreReferralRepository.js.map

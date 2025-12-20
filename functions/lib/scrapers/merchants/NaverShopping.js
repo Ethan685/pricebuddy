@@ -71,14 +71,14 @@ class NaverShoppingAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 merchantName: this.name,
                 region: this.region,
                 productUrl: item.link,
-                image: item.image,
+                image: item.image, // Changed from imageUrl to image
                 inStock: true,
                 affiliateUrl: this.getAffiliateLink(item.link, item.productId),
                 brand: item.brand,
                 category: item.category1,
                 mall: item.mallName,
                 // Mock review data for UI demonstration since API doesn't return it
-                rating: 4.0 + (parseInt(item.productId || '0', 10) % 10) / 10,
+                rating: 4.0 + (parseInt(item.productId || '0', 10) % 10) / 10, // 4.0 ~ 4.9
                 reviewCount: Math.floor(Math.random() * 2000) + 50 // 50 ~ 2050
             };
         })
@@ -108,7 +108,7 @@ class NaverShoppingAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('NaPm', partnerId);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return `${productUrl}?NaPm=${partnerId}`;
         }
     }
@@ -130,4 +130,3 @@ class NaverShoppingAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.NaverShoppingAdapter = NaverShoppingAdapter;
-//# sourceMappingURL=NaverShopping.js.map

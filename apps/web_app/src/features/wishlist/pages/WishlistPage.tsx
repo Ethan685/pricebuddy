@@ -72,7 +72,7 @@ export function WishlistPage() {
                     {item.imageUrl ? (
                       <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover rounded-lg" />
                     ) : (
-                      <span className="text-slate-500">{t("common.imagePlaceholder")}</span>
+                      <span className="text-slate-500">{t(" ")}</span>
                     )}
                   </div>
                   <h3 className="font-semibold mb-2 line-clamp-2">{item.title}</h3>

@@ -27,7 +27,10 @@ class eBayAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.6,
                 reviewCount: 1543
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -70,7 +73,10 @@ class TargetAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.5,
                 reviewCount: 987
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -91,7 +97,7 @@ class TargetAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('afid', affiliateId);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return productUrl;
         }
     }
@@ -120,7 +126,10 @@ class BestBuyAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.7,
                 reviewCount: 2134
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -140,4 +149,3 @@ class BestBuyAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.BestBuyAdapter = BestBuyAdapter;
-//# sourceMappingURL=NAMarketsExtra.js.map

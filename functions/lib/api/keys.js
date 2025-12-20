@@ -29,7 +29,6 @@ const admin = __importStar(require("firebase-admin"));
 const db = admin.firestore();
 // Create new API Key
 exports.createApiKey = functions.https.onCall(async (data, context) => {
-    var _a, _b;
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Must be logged in");
     }
@@ -37,7 +36,7 @@ exports.createApiKey = functions.https.onCall(async (data, context) => {
     const uid = context.auth.uid;
     // RBAC Check
     const userSnap = await db.collection('users').doc(uid).get();
-    if (((_a = userSnap.data()) === null || _a === void 0 ? void 0 : _a.role) !== 'enterprise' && ((_b = userSnap.data()) === null || _b === void 0 ? void 0 : _b.role) !== 'admin') {
+    if (userSnap.data()?.role !== 'enterprise' && userSnap.data()?.role !== 'admin') {
         throw new functions.https.HttpsError("permission-denied", "Enterprise plan required.");
     }
     // Generate Key (Simple SHA/Random for demo)
@@ -64,20 +63,21 @@ exports.listApiKeys = functions.https.onCall(async (data, context) => {
         .where('active', '==', true)
         .orderBy('createdAt', 'desc')
         .get();
-    return snap.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+    return snap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    }));
 });
 exports.revokeApiKey = functions.https.onCall(async (data, context) => {
-    var _a;
     if (!context.auth)
         throw new functions.https.HttpsError("unauthenticated", "Auth required");
     const { id } = data;
     // Ensure ownership
     const docRef = db.collection('api_keys').doc(id);
     const docSnap = await docRef.get();
-    if (!docSnap.exists || ((_a = docSnap.data()) === null || _a === void 0 ? void 0 : _a.userId) !== context.auth.uid) {
+    if (!docSnap.exists || docSnap.data()?.userId !== context.auth.uid) {
         throw new functions.https.HttpsError("permission-denied", "Not allowed");
     }
     await docRef.update({ active: false });
     return { success: true };
 });
-//# sourceMappingURL=keys.js.map

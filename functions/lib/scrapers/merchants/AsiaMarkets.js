@@ -29,7 +29,10 @@ class AliExpressAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.7,
                 reviewCount: 2345
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -48,7 +51,7 @@ class AliExpressAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
         try {
             return `https://s.click.aliexpress.com/e/${this.trackingId}`;
         }
-        catch (_a) {
+        catch {
             return productUrl;
         }
     }
@@ -79,7 +82,10 @@ class RakutenAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.5,
                 reviewCount: 1567
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -99,7 +105,7 @@ class RakutenAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
             url.searchParams.set('scid', this.affiliateId);
             return url.toString();
         }
-        catch (_a) {
+        catch {
             return productUrl;
         }
     }
@@ -129,7 +135,10 @@ class LazadaAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 inStock: true,
                 rating: 4.4,
                 reviewCount: 892
-            }].map(p => (Object.assign(Object.assign({}, p), { affiliateUrl: this.getAffiliateLink(p.productUrl, p.id) })));
+            }].map(p => ({
+            ...p,
+            affiliateUrl: this.getAffiliateLink(p.productUrl, p.id)
+        }));
     }
     async getPrice(productId) {
         return {
@@ -149,4 +158,3 @@ class LazadaAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.LazadaAdapter = LazadaAdapter;
-//# sourceMappingURL=AsiaMarkets.js.map

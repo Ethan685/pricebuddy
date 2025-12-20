@@ -34,4 +34,3 @@ class JPScraperStrategy {
     }
 }
 exports.JPScraperStrategy = JPScraperStrategy;
-//# sourceMappingURL=JPScraperStrategy.js.map

@@ -91,4 +91,3 @@ exports.processReferral = functions.firestore
         functions.logger.error("Referral processing failed", error);
     }
 });
-//# sourceMappingURL=referrals.js.map

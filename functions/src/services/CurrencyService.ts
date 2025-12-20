@@ -87,16 +87,16 @@ export class CurrencyService {
             const response = await fetch(this.API_URL);
             const data = await response.json();
 
-            if (data && data.rates) {
+            if (data && (data as any).rates) {
                 this.cache = {
-                    rates: data.rates,
+                    rates: (data as any).rates,
                     timestamp: now
                 };
 
                 // Optionally cache in Firestore for persistence
                 await this.cacheToFirestore(this.cache);
 
-                return data.rates;
+                return (data as any).rates;
             }
 
             throw new Error('Invalid response from exchange rate API');

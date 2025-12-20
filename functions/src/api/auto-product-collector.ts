@@ -54,7 +54,7 @@ export const autoCollectProducts = functions
 
                             if (response.ok) {
                                 const data = await response.json();
-                                const results = data.results || [];
+                                const results = (data as any).results || [];
 
                                 // 결과를 Firestore에 저장
                                 const batch = db.batch();

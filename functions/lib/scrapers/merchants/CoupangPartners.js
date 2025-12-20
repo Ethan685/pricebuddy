@@ -97,7 +97,7 @@ class CoupangPartnersAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
                 productUrl: item.productUrl,
                 imageUrl: item.productImage,
                 inStock: true,
-                affiliateUrl: item.productUrl,
+                affiliateUrl: item.productUrl, // Coupang returns affiliate URL
                 isRocket: item.isRocket,
                 isFreeShipping: item.isFreeShipping,
                 rating: item.rating,
@@ -139,4 +139,3 @@ class CoupangPartnersAdapter extends MerchantAdapter_1.BaseMerchantAdapter {
     }
 }
 exports.CoupangPartnersAdapter = CoupangPartnersAdapter;
-//# sourceMappingURL=CoupangPartners.js.map

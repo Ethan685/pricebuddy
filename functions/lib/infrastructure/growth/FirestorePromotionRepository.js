@@ -36,13 +36,13 @@ class FirestorePromotionRepository {
             .where('isActive', '==', true)
             .where('endDate', '>=', now)
             .get();
-        return snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     }
     async applyPromotion(code, context) {
         const snapshot = await this.collection.where('code', '==', code).limit(1).get();
         if (snapshot.empty)
             return null;
-        const promo = Object.assign({ id: snapshot.docs[0].id }, snapshot.docs[0].data());
+        const promo = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
         // 1. Check validity (Date)
         const now = new Date();
         if (promo.startDate > now || promo.endDate < now || !promo.isActive) {
@@ -56,4 +56,3 @@ class FirestorePromotionRepository {
     }
 }
 exports.FirestorePromotionRepository = FirestorePromotionRepository;
-//# sourceMappingURL=FirestorePromotionRepository.js.map

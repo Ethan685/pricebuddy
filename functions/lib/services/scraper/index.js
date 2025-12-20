@@ -36,10 +36,10 @@ class ScraperService {
         // OR we respect the target currency. The legacy code converted everything to KRW.
         const productsWithKRW = await Promise.all(products.map(async (product) => {
             if (product.currency === 'KRW') {
-                return Object.assign(Object.assign({}, product), { priceKRW: product.price });
+                return { ...product, priceKRW: product.price };
             }
             const priceKRW = await CurrencyService_1.currencyService.convert(product.price, product.currency, 'KRW');
-            return Object.assign(Object.assign({}, product), { priceKRW });
+            return { ...product, priceKRW };
         }));
         // 3. Grouping (Matcher Service)
         return matcher_1.MatcherService.groupProducts(productsWithKRW);
@@ -56,4 +56,3 @@ ScraperService.strategies = [
     new KRScraperStrategy_1.KRScraperStrategy(),
     new JPScraperStrategy_1.JPScraperStrategy()
 ];
-//# sourceMappingURL=index.js.map

@@ -29,4 +29,3 @@ const roundMoney = (amount, precision = 2) => {
     return Math.round(amount * factor) / factor;
 };
 exports.roundMoney = roundMoney;
-//# sourceMappingURL=Money.js.map

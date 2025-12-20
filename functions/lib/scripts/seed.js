@@ -82,11 +82,16 @@ async function seed() {
     const batch = db.batch();
     for (const product of SAMPLE_PRODUCTS) {
         const ref = db.collection("products").doc();
-        await batch.set(ref, Object.assign(Object.assign({}, product), { titleLower: product.title.toLowerCase(), id: ref.id, createdAt: admin.firestore.FieldValue.serverTimestamp() }));
+        await batch.set(ref, {
+            ...product,
+            titleLower: product.title.toLowerCase(),
+            id: ref.id,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
         // Seed Offers (Expanded Merchants)
         const merchants = [
             { name: "Coupang", priceMultiplier: 0.98, currency: "KRW" },
-            { name: "Amazon", priceMultiplier: 1.05, currency: "USD" },
+            { name: "Amazon", priceMultiplier: 1.05, currency: "USD" }, // USD will need conversion in logic, but for seed we store as is or generic
             { name: "11st", priceMultiplier: 1.02, currency: "KRW" },
             { name: "eBay", priceMultiplier: 1.08, currency: "USD" },
             { name: "AliExpress", priceMultiplier: 0.85, currency: "USD" },
@@ -140,4 +145,3 @@ async function seed() {
     console.log(`Successfully seeded ${SAMPLE_PRODUCTS.length} products.`);
 }
 seed().catch(console.error);
-//# sourceMappingURL=seed.js.map

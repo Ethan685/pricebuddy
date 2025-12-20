@@ -42,7 +42,10 @@ exports.toggleWishlist = functions.https.onCall(async (data, context) => {
     }
     else {
         // Add
-        await wishRef.set(Object.assign(Object.assign({}, productData), { addedAt: admin.firestore.FieldValue.serverTimestamp() }));
+        await wishRef.set({
+            ...productData,
+            addedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
         return { added: true, message: "Added to wishlist" };
     }
 });
@@ -52,12 +55,11 @@ exports.getWishlist = functions.https.onCall(async (data, context) => {
     }
     const uid = context.auth.uid;
     const snap = await db.collection('users').doc(uid).collection('wishlist').orderBy('addedAt', 'desc').get();
-    const items = snap.docs.map(d => (Object.assign({ id: d.id }, d.data())));
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     return { items };
 });
 // HTTP 엔드포인트: 위시리스트 조회
 exports.wishlist = functions.region("asia-northeast3").https.onRequest(async (req, res) => {
-    var _a;
     // CORS 설정
     const origin = req.headers.origin;
     const allowedOrigins = [
@@ -79,7 +81,7 @@ exports.wishlist = functions.region("asia-northeast3").https.onRequest(async (re
         return;
     }
     try {
-        const userId = req.query.userId || ((_a = req.body) === null || _a === void 0 ? void 0 : _a.userId);
+        const userId = req.query.userId || req.body?.userId;
         if (!userId) {
             res.status(400).json({ error: "userId is required" });
             return;
@@ -90,7 +92,11 @@ exports.wishlist = functions.region("asia-northeast3").https.onRequest(async (re
             const snap = await db.collection('users').doc(userId).collection('wishlist')
                 .orderBy('addedAt', 'desc')
                 .get();
-            const items = snap.docs.map(d => (Object.assign({ id: d.id, productId: d.id }, d.data())));
+            const items = snap.docs.map(d => ({
+                id: d.id,
+                productId: d.id,
+                ...d.data(),
+            }));
             res.json({ items });
         }
         else if (req.method === "POST") {
@@ -106,7 +112,10 @@ exports.wishlist = functions.region("asia-northeast3").https.onRequest(async (re
                 res.json({ added: false, message: "Already in wishlist" });
             }
             else {
-                await wishRef.set(Object.assign(Object.assign({}, productData), { addedAt: admin.firestore.FieldValue.serverTimestamp() }));
+                await wishRef.set({
+                    ...productData,
+                    addedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
                 res.json({ added: true, message: "Added to wishlist" });
             }
         }
@@ -130,4 +139,3 @@ exports.wishlist = functions.region("asia-northeast3").https.onRequest(async (re
         res.status(500).json({ error: "Wishlist operation failed", message: error.message });
     }
 });
-//# sourceMappingURL=wishlist.js.map

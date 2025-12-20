@@ -6,11 +6,11 @@ import { usePurchases } from "../api/usePurchases";
 import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
 import { SkeletonPage } from "@/shared/ui/Skeleton";
 import { Link } from "react-router-dom";
-import { useLanguage } from "@/shared/context/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 export function PurchaseHistoryPage() {
   const { user } = useAuthContext();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { data, isLoading, error } = usePurchases(user?.uid);
 
   const purchases = data?.purchases || [];

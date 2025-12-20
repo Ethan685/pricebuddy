@@ -34,11 +34,11 @@ export function ReferralPage() {
     try {
       setLoading(true);
       const [codeData, statsData] = await Promise.all([
-        httpGet<{ referralCode: string }>(`/referral/code?userId=${user.uid}`),
-        httpGet<ReferralStats>(`/referral/stats?userId=${user.uid}`),
+        httpGet<{ code: string }>(`/api/referrals/code?userId=${user.uid}`),
+        httpGet<ReferralStats>(`/api/referrals/stats?userId=${user.uid}`),
       ]);
 
-      setReferralCode(codeData.referralCode);
+      setReferralCode(codeData.code);
       setStats(statsData);
     } catch (error) {
       console.error("Failed to load referral data:", error);

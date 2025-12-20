@@ -111,7 +111,7 @@ class _CashbackScreenState extends State<CashbackScreen> {
             StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('cashback_wallet')
-                  .doc(user!.uid)
+                  .doc(user.uid)
                   .snapshots(),
               builder: (context, snapshot) {
                 final doc = snapshot.data;
@@ -177,7 +177,7 @@ class _CashbackScreenState extends State<CashbackScreen> {
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('cashback_ledger')
-                  .where('userId', isEqualTo: user!.uid)
+                  .where('userId', isEqualTo: user.uid)
                   .orderBy('createdAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {

@@ -1,9 +1,14 @@
 // background.js
 
-// Production Cloud Functions URL (Commented out for V1 Dev)
-// const API_BASE = 'https://us-central1-pricebuddy.cloudfunctions.net';
-// Local Emulator URL
-const API_BASE = 'http://localhost:5001/pricebuddy/us-central1';
+// GA 구조: 단일 API 엔드포인트 사용
+// Production
+const API_BASE_PROD = 'https://asia-northeast3-pricebuddy-5a869.cloudfunctions.net/api';
+// Local Emulator
+const API_BASE_DEV = 'http://127.0.0.1:5001/pricebuddy-5a869/asia-northeast3/api';
+// 환경 감지
+const API_BASE = chrome.runtime.id.includes('dev') || chrome.runtime.id.includes('unpacked') 
+    ? API_BASE_DEV 
+    : API_BASE_PROD;
 
 // Listen for messages from content.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -22,30 +27,30 @@ async function handleCheckSKU(product) {
     console.log("Checking SKU for:", product.title);
 
     try {
-        // Call the matchSKU cloud function
-        const response = await fetch(`${API_BASE}/matchSKU`, {
+        // GA 구조: Match API 사용 (확장 프로그램 전용)
+        const response = await fetch(`${API_BASE}/match`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
-                data: {
-                    title: product.title,
-                    currentPrice: product.price || 0,
-                    currency: product.currency || 'USD'
-                }
+                title: product.title,
+                currentPrice: product.price || 0,
+                currency: product.currency || 'USD'
             })
         });
 
         if (!response.ok) throw new Error('API Error');
 
         const result = await response.json();
-        const data = result.result || result.data || {}; // Handle Firebase's wrapped response
-
-        // Logic: Find the best deal that isn't the current one (simplified)
-        // For MVP, we pass back the "bestMatch" from the cloud function.
-        // In reality, we should filter out the current hostname.
-
-        const bestMatch = data.bestMatch;
-        const matches = data.matches || [];
+        
+        // GA 구조: Match API 응답 형식
+        const bestMatch = result.bestMatch || null;
+        const matches = result.matches || [];
+        
+        if (!bestMatch && matches.length === 0) {
+            return null;
+        }
 
         // Simple suppression: don't show if best match is essentially the same price
         // or if it's the same source (pseudo-check)

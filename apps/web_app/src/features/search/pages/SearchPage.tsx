@@ -1,13 +1,13 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearch } from "../api/useSearch";
 import { SearchCard } from "../components/SearchCard";
 import { Button } from "@/shared/ui/Button";
 import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
 import { SkeletonPage } from "@/shared/ui/Skeleton";
-import { useLanguage } from "@/shared/context/LanguageContext";
 
 export function SearchPage() {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [query, setQuery] = useState("iphone");
   const [region, setRegion] = useState<"global" | "kr">("global");
   const [searchQuery, setSearchQuery] = useState("iphone");
@@ -81,18 +81,27 @@ export function SearchPage() {
         </div>
       </div>
 
-      <AsyncBoundary isLoading={isLoading} error={error}>
+      <AsyncBoundary 
+        isLoading={isLoading} 
+        error={error ? (typeof error === "string" ? error : error.message || "An error occurred") : null}
+      >
         {data && data.results.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-4 mt-6">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mt-8">
             {data.results.map((item) => (
-              <SearchCard key={item.productId} item={item} />
+              <SearchCard key={item.id || item.productId || `item-${item.title}`} item={item} />
             ))}
           </div>
-        ) : (
-          <div className="text-center py-8 text-slate-400">
-            {t("search.noResults")}
-          </div>
-        )}
+        ) : !isLoading ? (
+          <Card className="text-center py-16">
+            <div className="text-6xl mb-6">🔍</div>
+            <p className="text-textMuted text-lg mb-4">
+              {t("search.noResults", { defaultValue: "No results found" })}
+            </p>
+            <p className="text-textMuted text-sm">
+              Try different keywords or browse our deals
+            </p>
+          </Card>
+        ) : null}
       </AsyncBoundary>
     </div>
   );

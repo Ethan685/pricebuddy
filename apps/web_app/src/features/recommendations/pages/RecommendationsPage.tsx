@@ -52,7 +52,7 @@ export function RecommendationsPage() {
                       {rec.imageUrl ? (
                         <img src={rec.imageUrl} alt={rec.title} className="w-full h-full object-cover rounded-lg" />
                       ) : (
-                        <span className="text-slate-500 text-xs">{t("common.imagePlaceholder")}</span>
+                        <span className="text-slate-500 text-xs">{t(" ")}</span>
                       )}
                     </div>
                     <div className="flex-1">

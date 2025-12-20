@@ -51,7 +51,7 @@ exports.checkWishlistPriceDrops = functions.pubsub
                 if (!productDoc.exists)
                     continue;
                 const product = productDoc.data();
-                const currentPrice = (product === null || product === void 0 ? void 0 : product.minPrice) || 0;
+                const currentPrice = product?.minPrice || 0;
                 const savedPrice = item.price || currentPrice;
                 // Calculate price drop percentage
                 const dropPercentage = ((savedPrice - currentPrice) / savedPrice) * 100;
@@ -135,7 +135,7 @@ exports.checkUserWishlist = functions.https.onCall(async (data, context) => {
         if (!productDoc.exists)
             continue;
         const product = productDoc.data();
-        const currentPrice = (product === null || product === void 0 ? void 0 : product.minPrice) || 0;
+        const currentPrice = product?.minPrice || 0;
         const savedPrice = item.price || currentPrice;
         const dropPercentage = ((savedPrice - currentPrice) / savedPrice) * 100;
         results.push({
@@ -149,4 +149,3 @@ exports.checkUserWishlist = functions.https.onCall(async (data, context) => {
     }
     return { items: results };
 });
-//# sourceMappingURL=wishlist-retargeting.js.map

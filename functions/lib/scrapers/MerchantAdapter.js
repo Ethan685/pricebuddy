@@ -16,7 +16,13 @@ class BaseMerchantAdapter {
         let lastError = null;
         for (let i = 0; i < maxRetries; i++) {
             try {
-                const response = await fetch(url, Object.assign(Object.assign({}, options), { headers: Object.assign({ 'User-Agent': 'PriceBuddy/1.0' }, options === null || options === void 0 ? void 0 : options.headers) }));
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'User-Agent': 'PriceBuddy/1.0',
+                        ...options?.headers
+                    }
+                });
                 if (response.ok) {
                     return response;
                 }
@@ -94,4 +100,3 @@ class MerchantRegistry {
 }
 exports.MerchantRegistry = MerchantRegistry;
 MerchantRegistry.merchants = new Map();
-//# sourceMappingURL=MerchantAdapter.js.map

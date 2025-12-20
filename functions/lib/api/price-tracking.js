@@ -31,7 +31,6 @@ const db = admin.firestore();
  * Record price snapshot whenever price is checked
  */
 exports.recordPriceSnapshot = functions.https.onCall(async (data, context) => {
-    var _a;
     const { productId, merchantName, price, currency, source = 'scraper' } = data;
     if (!productId || !merchantName || !price) {
         throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
@@ -49,10 +48,10 @@ exports.recordPriceSnapshot = functions.https.onCall(async (data, context) => {
             currency,
             merchantName,
             recordedAt: admin.firestore.FieldValue.serverTimestamp(),
-            verified: source === 'api',
+            verified: source === 'api', // API sources are verified
             source,
             product: {
-                title: (_a = productDoc.data()) === null || _a === void 0 ? void 0 : _a.title,
+                title: productDoc.data()?.title,
                 id: productId
             }
         });
@@ -72,7 +71,6 @@ exports.recordPriceSnapshot = functions.https.onCall(async (data, context) => {
  * Get price history for a product
  */
 exports.getPriceHistory = functions.https.onCall(async (data, context) => {
-    var _a;
     const { productId, merchantName, daysBack = 30 } = data;
     if (!productId) {
         throw new functions.https.HttpsError('invalid-argument', 'Product ID required');
@@ -89,7 +87,10 @@ exports.getPriceHistory = functions.https.onCall(async (data, context) => {
             query = query.where('merchantName', '==', merchantName);
         }
         const snapshot = await query.limit(100).get();
-        const history = snapshot.docs.map(doc => (Object.assign(Object.assign({}, doc.data()), { id: doc.id })));
+        const history = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id
+        }));
         // Calculate statistics
         const prices = history.map(h => h.price);
         const stats = {
@@ -105,7 +106,7 @@ exports.getPriceHistory = functions.https.onCall(async (data, context) => {
             history,
             stats,
             daysBack,
-            lastUpdated: ((_a = history[0]) === null || _a === void 0 ? void 0 : _a.recordedAt) || null
+            lastUpdated: history[0]?.recordedAt || null
         };
     }
     catch (error) {
@@ -172,7 +173,6 @@ exports.scheduledPriceUpdate = functions.pubsub
  * Get data freshness indicator
  */
 exports.getDataFreshness = functions.https.onCall(async (data, context) => {
-    var _a;
     const { productId } = data;
     if (!productId) {
         throw new functions.https.HttpsError('invalid-argument', 'Product ID required');
@@ -182,7 +182,7 @@ exports.getDataFreshness = functions.https.onCall(async (data, context) => {
         if (!productDoc.exists) {
             throw new functions.https.HttpsError('not-found', 'Product not found');
         }
-        const lastCheck = (_a = productDoc.data()) === null || _a === void 0 ? void 0 : _a.lastPriceCheck;
+        const lastCheck = productDoc.data()?.lastPriceCheck;
         if (!lastCheck) {
             return {
                 status: 'unknown',
@@ -277,9 +277,8 @@ exports.priceTracking = functions.region("asia-northeast3").https.onRequest(asyn
                 .limit(30)
                 .get();
             const history = historySnap.docs.map(doc => {
-                var _a, _b, _c;
                 const d = doc.data();
-                const timestamp = ((_c = (_b = (_a = d.timestamp) === null || _a === void 0 ? void 0 : _a.toDate) === null || _b === void 0 ? void 0 : _b.call(_a)) === null || _c === void 0 ? void 0 : _c.toISOString()) || d.date || d.timestamp;
+                const timestamp = d.timestamp?.toDate?.()?.toISOString() || d.date || d.timestamp;
                 return {
                     ts: timestamp,
                     totalPriceKrw: d.price || d.totalPriceKrw || 0
@@ -310,4 +309,3 @@ exports.priceTracking = functions.region("asia-northeast3").https.onRequest(asyn
         res.status(500).json({ error: "Request failed", message: error.message });
     }
 });
-//# sourceMappingURL=price-tracking.js.map

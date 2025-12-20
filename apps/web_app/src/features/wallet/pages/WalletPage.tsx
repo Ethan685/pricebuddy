@@ -5,7 +5,7 @@ import { formatKrw } from "@/shared/lib/money";
 import { formatDateTime } from "@/shared/lib/datetime";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { httpGet } from "@/shared/lib/http";
-import { useLanguage } from "@/shared/context/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 interface Transaction {
@@ -19,7 +19,7 @@ interface Transaction {
 
 export function WalletPage() {
   const { user } = useAuthContext();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,9 +36,9 @@ export function WalletPage() {
     try {
       setLoading(true);
       const [balanceData, transactionsData] = await Promise.all([
-        httpGet<{ balance: number }>(`/wallet/balance?userId=${user.uid}`),
+        httpGet<{ balance: number }>(`/api/wallet/balance?userId=${user.uid}`),
         httpGet<{ transactions: Transaction[] }>(
-          `/wallet/transactions?userId=${user.uid}`
+          `/api/wallet/transactions?userId=${user.uid}`
         ),
       ]);
 

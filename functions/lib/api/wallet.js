@@ -150,9 +150,9 @@ exports.requestWithdrawalV2 = functions.https.onCall(async (data, context) => {
                 userId: userId,
                 amount: -amount,
                 type: "withdrawal",
-                status: status,
-                balanceAfter: newBalance,
-                referenceId: ledgerRef.id,
+                status: status, // pending or pending_review
+                balanceAfter: newBalance, // Audit trail
+                referenceId: ledgerRef.id, // Self-reference for now, or external ID
                 description: "Withdrawal Request",
                 createdAt: new Date()
             });
@@ -176,7 +176,6 @@ exports.simulateCashbackEarned = functions.https.onCall(async (data, context) =>
     const db = admin.firestore();
     try {
         await db.runTransaction(async (t) => {
-            var _a;
             const walletRef = db.collection("cashback_wallet").doc(userId);
             const walletDoc = await t.get(walletRef);
             let currentBalance = 0;
@@ -190,7 +189,7 @@ exports.simulateCashbackEarned = functions.https.onCall(async (data, context) =>
                 });
             }
             else {
-                currentBalance = ((_a = walletDoc.data()) === null || _a === void 0 ? void 0 : _a.balance) || 0;
+                currentBalance = walletDoc.data()?.balance || 0;
                 t.update(walletRef, {
                     balance: currentBalance + amount,
                     updatedAt: new Date()
@@ -251,4 +250,3 @@ exports.getCurrentLimits = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("internal", "Failed to get limits");
     }
 });
-//# sourceMappingURL=wallet.js.map

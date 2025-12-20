@@ -13,7 +13,8 @@
         "*://*.amazon.com/*",
         "*://*.coupang.com/*",
         "*://*.naver.com/*",
-        "https://us-central1-pricebuddy.cloudfunctions.net/*"
+        "https://asia-northeast3-pricebuddy-5a869.cloudfunctions.net/*",
+        "http://127.0.0.1:5001/*"
     ],
     "action": {
         "default_popup": "popup.html"

@@ -148,8 +148,8 @@ class CurrencyService {
             if (doc.exists) {
                 const data = doc.data();
                 return {
-                    rates: (data === null || data === void 0 ? void 0 : data.rates) || {},
-                    timestamp: (data === null || data === void 0 ? void 0 : data.timestamp) || 0
+                    rates: data?.rates || {},
+                    timestamp: data?.timestamp || 0
                 };
             }
         }
@@ -203,4 +203,3 @@ class CurrencyService {
 exports.CurrencyService = CurrencyService;
 // Export singleton instance
 exports.currencyService = CurrencyService.getInstance();
-//# sourceMappingURL=CurrencyService.js.map

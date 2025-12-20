@@ -31,7 +31,6 @@ const admin = __importStar(require("firebase-admin"));
  * Pro+ Feature Only.
  */
 exports.trackPackage = functions.https.onCall(async (data, context) => {
-    var _a;
     // 1. Auth Check
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "User must be logged in");
@@ -40,7 +39,7 @@ exports.trackPackage = functions.https.onCall(async (data, context) => {
     const db = admin.firestore();
     // 2. Pro+ Permission Check
     const userDoc = await db.collection("users").doc(userId).get();
-    const role = (_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.role;
+    const role = userDoc.data()?.role;
     // Allow 'admin' to test as well
     if (role !== 'pro_plus' && role !== 'admin') {
         throw new functions.https.HttpsError("permission-denied", "This feature is available for Pro+ users only.");
@@ -60,7 +59,7 @@ exports.trackPackage = functions.https.onCall(async (data, context) => {
         carrier,
         trackingNumber,
         status: status,
-        estimatedDelivery: new Date(Date.now() + 86400000 * 2).toISOString(),
+        estimatedDelivery: new Date(Date.now() + 86400000 * 2).toISOString(), // +2 days
         events: [
             {
                 status: 'Sorted at Facility',
@@ -75,4 +74,3 @@ exports.trackPackage = functions.https.onCall(async (data, context) => {
         ]
     };
 });
-//# sourceMappingURL=delivery.js.map

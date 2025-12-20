@@ -30,9 +30,8 @@ const db = admin.firestore();
 exports.predictEngagement = functions.https.onCall(async (data, context) => {
     // Mock Engagement ML (v4.6 Growth Loop)
     // Predicts "Churn Risk" and recommends "Retention Action"
-    var _a;
     // In real world, this would use BigQuery ML or TensorFlow
-    const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    const uid = context.auth?.uid;
     if (!uid)
         return { error: "Auth required" };
     // 1. Fetch user activity stats (Simulated)
@@ -59,7 +58,7 @@ exports.predictEngagement = functions.https.onCall(async (data, context) => {
     });
     return {
         uid,
-        churnRisk,
+        churnRisk, // 0.0 to 1.0
         segment: churnRisk > 0.5 ? "at_risk" : "loyal",
         recommendedAction: action
     };
@@ -97,4 +96,3 @@ exports.checkBadges = functions.https.onCall(async (data, context) => {
     }
     return { newBadges, message: "No new badges." };
 });
-//# sourceMappingURL=engagement.js.map

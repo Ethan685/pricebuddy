@@ -42,7 +42,7 @@ export class WalmartAdapter extends BaseMerchantAdapter {
 
             const data = await response.json();
 
-            return (data.items || []).map((item: any) => ({
+            return (((data as any).items || [])).map((item: any) => ({
                 id: item.itemId?.toString() || '',
                 title: item.name || '',
                 price: item.salePrice || item.msrp || 0,

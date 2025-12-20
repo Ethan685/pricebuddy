@@ -34,8 +34,10 @@ class FirestoreFeedRepository {
             .limit(limit)
             // .orderBy('createdAt', 'desc') // Ensure index exists if using orderBy
             .get();
-        return snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
     }
 }
 exports.FirestoreFeedRepository = FirestoreFeedRepository;
-//# sourceMappingURL=FirestoreFeedRepository.js.map

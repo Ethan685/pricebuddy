@@ -34,7 +34,6 @@ if (admin.apps.length === 0) {
 }
 // Admin only function to approve withdrawals
 exports.processWithdrawal = functions.https.onCall(async (data, context) => {
-    var _a;
     // 1. Auth Check
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Must be logged in");
@@ -42,7 +41,7 @@ exports.processWithdrawal = functions.https.onCall(async (data, context) => {
     const db = admin.firestore();
     // 2. Admin Role Check
     const userDoc = await db.collection("users").doc(context.auth.uid).get();
-    if (((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.role) !== "admin") {
+    if (userDoc.data()?.role !== "admin") {
         throw new functions.https.HttpsError("permission-denied", "Admin only");
     }
     const withdrawalId = data.withdrawalId;
@@ -71,7 +70,7 @@ exports.processWithdrawal = functions.https.onCall(async (data, context) => {
                 // Refund the wallet
                 const walletRef = db.collection("cashback_wallet").doc(entry.userId);
                 t.update(walletRef, {
-                    balance: admin.firestore.FieldValue.increment(-entry.amount),
+                    balance: admin.firestore.FieldValue.increment(-entry.amount), // Amount is negative in ledger, so -(-10000) = +10000
                     updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 });
                 t.update(ledgerRef, {
@@ -124,7 +123,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
                     quantity: 1,
                 }],
             customer_email: email,
-            client_reference_id: uid,
+            client_reference_id: uid, // Use this in webhook to identify user
             metadata: {
                 firebaseUID: uid,
                 planId: planId
@@ -141,7 +140,6 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
 });
 // NEW: Stripe Webhook Handler
 exports.handleStripeWebhook = functions.https.onRequest(async (req, res) => {
-    var _a;
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_dummy';
     let event;
@@ -159,7 +157,7 @@ exports.handleStripeWebhook = functions.https.onRequest(async (req, res) => {
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
         const uid = session.client_reference_id;
-        const planId = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.planId;
+        const planId = session.metadata?.planId;
         if (uid && planId) {
             await admin.firestore().collection("users").doc(uid).set({
                 role: planId,
@@ -183,7 +181,7 @@ exports.createPortalSession = functions.https.onCall(async (data, context) => {
         // 2. Get user data to retrieve stripeCustomerId
         const userDoc = await db.collection("users").doc(uid).get();
         const userData = userDoc.data();
-        let customerId = userData === null || userData === void 0 ? void 0 : userData.stripeCustomerId;
+        let customerId = userData?.stripeCustomerId;
         // 3. If no customer ID, create one
         if (!customerId) {
             const customer = await stripe.customers.create({
@@ -210,4 +208,3 @@ exports.createPortalSession = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError("internal", "Portal session creation failed");
     }
 });
-//# sourceMappingURL=payments.js.map

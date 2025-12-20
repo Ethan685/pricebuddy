@@ -29,4 +29,3 @@ class ViralShare {
     }
 }
 exports.ViralShare = ViralShare;
-//# sourceMappingURL=ViralShare.js.map

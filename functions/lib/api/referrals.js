@@ -37,15 +37,14 @@ function generateCode() {
     return result;
 }
 exports.createReferralCode = functions.https.onCall(async (data, context) => {
-    var _a, _b;
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
     const uid = context.auth.uid;
     // Check if exists
     const userDoc = await db.collection('users').doc(uid).get();
-    if (userDoc.exists && ((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.referralCode)) {
-        return { code: (_b = userDoc.data()) === null || _b === void 0 ? void 0 : _b.referralCode };
+    if (userDoc.exists && userDoc.data()?.referralCode) {
+        return { code: userDoc.data()?.referralCode };
     }
     // Generate unique code (simplified collision check)
     let code = generateCode();
@@ -68,7 +67,6 @@ exports.createReferralCode = functions.https.onCall(async (data, context) => {
     return { code };
 });
 exports.redeemReferral = functions.https.onCall(async (data, context) => {
-    var _a;
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
@@ -89,7 +87,7 @@ exports.redeemReferral = functions.https.onCall(async (data, context) => {
     }
     // Check if already redeemed
     const userDoc = await db.collection('users').doc(uid).get();
-    if ((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.redeemedReferral) {
+    if (userDoc.data()?.redeemedReferral) {
         throw new functions.https.HttpsError('failed-precondition', 'Already redeemed a code');
     }
     try {
@@ -138,4 +136,3 @@ exports.redeemReferral = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', 'Redemption failed');
     }
 });
-//# sourceMappingURL=referrals.js.map
