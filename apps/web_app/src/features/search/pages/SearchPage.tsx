@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { useSearch } from "../api/useSearch";
 import { SearchCard } from "../components/SearchCard";
 import { Button } from "@/shared/ui/Button";
+import { Card } from "@/shared/ui/Card";
 import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
 import { SkeletonPage } from "@/shared/ui/Skeleton";
 
@@ -97,9 +99,14 @@ export function SearchPage() {
             <p className="text-textMuted text-lg mb-4">
               {t("search.noResults", { defaultValue: "No results found" })}
             </p>
-            <p className="text-textMuted text-sm">
+            <p className="text-textMuted text-sm mb-6">
               Try different keywords or browse our deals
             </p>
+            <Link to="/deals">
+              <Button variant="primary" className="px-6 py-3">
+                View Deals
+              </Button>
+            </Link>
           </Card>
         ) : null}
       </AsyncBoundary>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/shared/ui/Card";
 import { Badge } from "@/shared/ui/Badge";
+import { Button } from "@/shared/ui/Button";
 import { formatKrw } from "@/shared/lib/money";
 import { formatRelativeTime } from "@/shared/lib/datetime";
 import { Link } from "react-router-dom";
@@ -13,9 +14,7 @@ export function DealsPage() {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<"all" | "flash">("all");
   const [sortBy, setSortBy] = useState<"discount" | "price" | "time">("discount");
-  const { deals: dealsData, loading: isLoading, error } = useDeals();
-
-  const deals = dealsData || [];
+  const { deals, loading: isLoading, error } = useDeals();
 
   const filteredDeals = deals.filter((deal) => {
     if (filter === "flash") return deal.isFlashDeal;
@@ -25,10 +24,11 @@ export function DealsPage() {
   const sortedDeals = [...filteredDeals].sort((a, b) => {
     switch (sortBy) {
       case "discount":
-        return b.discountPercent - a.discountPercent;
+        return (b.discountPercent || 0) - (a.discountPercent || 0);
       case "price":
-        return a.discountedPrice - b.discountedPrice;
+        return (a.discountedPrice || a.price || 0) - (b.discountedPrice || b.price || 0);
       case "time":
+        if (!a.validUntil || !b.validUntil) return 0;
         return new Date(a.validUntil).getTime() - new Date(b.validUntil).getTime();
       default:
         return 0;

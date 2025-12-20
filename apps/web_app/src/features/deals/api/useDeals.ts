@@ -98,14 +98,15 @@ export function useDeals(limit = 8) {
 
         const json = (await res.json()) as DealsResponse;
         const arr = Array.isArray(json?.deals) ? json.deals : [];
-        const normalized = arr.map(normalizeDeal).filter((x) => x.id);
+        const normalized = arr.map(normalizeDeal).filter((x) => x.id && x.title);
         
-        // API에서 데이터가 없으면 Mock 데이터 사용
+        // API에서 데이터가 없거나 빈 배열이면 Mock 데이터 사용
         if (alive) {
           if (normalized.length > 0) {
             setDeals(normalized);
           } else {
-            // Mock 데이터 사용 (출시 준비)
+            // Mock 데이터 사용 (GA 출시 준비)
+            console.log("Using mock deals data for GA launch");
             setDeals(mockDeals.slice(0, limit));
           }
         }
@@ -127,5 +128,9 @@ export function useDeals(limit = 8) {
     };
   }, [limit]);
 
-  return { deals, loading, error };
+  return { 
+    deals, 
+    loading, 
+    error 
+  };
 }

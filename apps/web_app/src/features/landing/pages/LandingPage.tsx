@@ -11,7 +11,7 @@ import { OnboardingWizard } from "../components/OnboardingWizard";
 
 export function LandingPage() {
   const { t } = useTranslation();
-  const { deals: dealsData, loading: dealsLoading } = useDeals(8);
+  const { deals, loading: dealsLoading } = useDeals(8);
   const [showWizard, setShowWizard] = useState(false);
 
   useEffect(() => {
@@ -33,8 +33,7 @@ export function LandingPage() {
     setShowWizard(false);
   };
 
-  const deals = dealsData?.deals || [];
-  const displayDeals = deals.slice(0, 4);
+  const displayDeals = deals.length > 0 ? deals.slice(0, 4) : [];
 
   return (
     <div className="min-h-screen">
