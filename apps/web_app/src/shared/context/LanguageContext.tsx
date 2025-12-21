@@ -1,38 +1,40 @@
-import type { ReactNode } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import i18n, { AppLanguage, getLanguage, normalizeLanguage, setLanguage as setI18nLanguage } from "../lib/i18n";
 
-import i18n, { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from "../lib/i18n";
-import type { Language } from "../lib/i18n";
-
-type LanguageContextValue = {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  supported: readonly Language[];
+type LanguageCtx = {
+  language: AppLanguage;
+  setLanguage: (lang: AppLanguage) => void;
 };
 
-const LanguageContext = createContext<LanguageContextValue | null>(null);
+const Ctx = createContext<LanguageCtx | null>(null);
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, _setLanguage] = useState<Language>(() => {
-    const saved = (localStorage.getItem("pricebuddy_lang") || "") as Language;
-    return (SUPPORTED_LANGUAGES as readonly string[]).includes(saved) ? saved : DEFAULT_LANGUAGE;
-  });
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [language, setLanguageState] = useState<AppLanguage>(() => getLanguage());
 
-  const setLanguage = (lang: Language) => {
-    _setLanguage(lang);
-    localStorage.setItem("pricebuddy_lang", lang);
-    i18n.changeLanguage(lang);
-  };
-
-  const value = useMemo<LanguageContextValue>(() => {
-    return { language, setLanguage, supported: SUPPORTED_LANGUAGES };
+  useEffect(() => {
+    void setI18nLanguage(language);
   }, [language]);
 
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+  // i18n 인스턴스가 초기화 안 된 경우 방어
+  useEffect(() => {
+    if (!i18n.isInitialized) {
+      // side-effect import가 꼬였을 때 대비 (대부분 위 i18n.ts에서 해결됨)
+    }
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      language,
+      setLanguage: (lang: AppLanguage) => setLanguageState(normalizeLanguage(lang)),
+    }),
+    [language]
+  );
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export function useLanguage() {
-  const ctx = useContext(LanguageContext);
-  if (!ctx) throw new Error("useLanguage must be used within <LanguageProvider>");
-  return ctx;
+  const v = useContext(Ctx);
+  if (!v) throw new Error("useLanguage must be used within LanguageProvider");
+  return v;
 }

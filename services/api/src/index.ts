@@ -16,6 +16,7 @@ import { monitoringRouter } from "./routes/monitoring";
 import { autoMarketingRouter } from "./routes/auto-marketing";
 import { autoSupportRouter } from "./routes/auto-support";
 import { autoAffiliateRouter } from "./routes/auto-affiliate";
+import { seedRouter } from "./routes/seed";
 import { errorMiddleware } from "./middleware/error";
 import { updateProductPrices } from "./routes/price-scheduler";
 
@@ -30,14 +31,14 @@ app.use((req, res, next) => {
     "http://localhost:5173",
     "http://localhost:3000",
   ];
-  
+
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Credentials", "true");
-  
+
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
   }
@@ -69,22 +70,32 @@ app.get("/health", (req, res) => {
 });
 
 // 라우팅
-app.use("/search", searchRouter);
-app.use("/products", productDetailRouter);
-app.use("/ext", extRouter);
-app.use("/deals", dealsRouter);
-app.use("/wallet", walletRouter);
-app.use("/alerts", alertsRouter);
-app.use("/purchases", purchasesRouter);
-app.use("/cashback", cashbackRouter);
-app.use("/referral", referralRouter);
-app.use("/recommendations", recommendationsRouter);
-app.use("/payment", paymentRouter);
-app.use("/price-tracking", priceTrackingRouter);
-app.use("/monitoring", monitoringRouter);
-app.use("/auto-marketing", autoMarketingRouter);
-app.use("/auto-support", autoSupportRouter);
-app.use("/auto-affiliate", autoAffiliateRouter);
+// 라우팅 (경로 유연성 확보)
+const routes = [
+  { path: "/search", router: searchRouter },
+  { path: "/products", router: productDetailRouter },
+  { path: "/ext", router: extRouter },
+  { path: "/deals", router: dealsRouter },
+  { path: "/wallet", router: walletRouter },
+  { path: "/alerts", router: alertsRouter },
+  { path: "/purchases", router: purchasesRouter },
+  { path: "/cashback", router: cashbackRouter },
+  { path: "/referral", router: referralRouter },
+  { path: "/recommendations", router: recommendationsRouter },
+  { path: "/payment", router: paymentRouter },
+  { path: "/price-tracking", router: priceTrackingRouter },
+  { path: "/monitoring", router: monitoringRouter },
+  { path: "/auto-marketing", router: autoMarketingRouter },
+  { path: "/auto-support", router: autoSupportRouter },
+  { path: "/auto-affiliate", router: autoAffiliateRouter },
+  { path: "/seed", router: seedRouter },
+];
+
+routes.forEach(({ path, router }) => {
+  app.use(path, router);
+  // Firebase Hosting rewrite가 /api prefix를 포함해서 보낼 경우를 대비
+  app.use(`/api${path}`, router);
+});
 
 // 에러 핸들링
 app.use(errorMiddleware);

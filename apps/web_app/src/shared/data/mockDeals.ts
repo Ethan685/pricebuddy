@@ -20,7 +20,7 @@ export const mockDeals: Deal[] = [
     id: "deal-2",
     productId: "2",
     title: "Samsung Galaxy S24 Ultra 512GB",
-    imageUrl: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbd?w=400",
+    imageUrl: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbd?w=400&h=400&fit=crop",
     url: "https://naver.com/products/789012",
     price: 1290000,
     discountedPrice: 1290000,

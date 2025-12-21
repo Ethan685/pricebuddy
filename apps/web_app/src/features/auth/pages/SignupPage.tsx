@@ -43,11 +43,11 @@ export function SignupPage() {
     try {
       setLoading(true);
       const userCredential = await signup(email, password);
-      
+
       // 추천 코드 적용
       if (referralCode && userCredential.user) {
         try {
-          await httpPost("/referral/apply", {
+          await httpPost("/api/referral/apply", {
             userId: userCredential.user.uid,
             referralCode,
           });
@@ -56,7 +56,7 @@ export function SignupPage() {
           // 추천 코드 실패해도 회원가입은 진행
         }
       }
-      
+
       navigate("/");
     } catch (err: any) {
       setError(err.message || t("auth.signup.failed"));
@@ -127,16 +127,21 @@ export function SignupPage() {
             />
           </div>
 
-          {referralCode && (
-            <div className="p-3 rounded-lg bg-emerald-900/20 border border-emerald-500/40">
-              <div className="text-sm text-emerald-300">
-                {t("auth.signup.referralApplied")}: <span className="font-mono">{referralCode}</span>
-              </div>
-              <div className="text-xs text-slate-400 mt-1">
+          <div>
+            <label className="block text-sm font-medium mb-2">{t("auth.signup.referralCode")} ({t("common.optional")})</label>
+            <input
+              type="text"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              className="w-full px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-emerald-500 uppercase font-mono placeholder:normal-case"
+              placeholder={t("auth.signup.referralCodePlaceholder")}
+            />
+            {referralCode && (
+              <div className="mt-2 text-xs text-emerald-400">
                 {t("auth.signup.referralBonus")}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <Button
             type="submit"

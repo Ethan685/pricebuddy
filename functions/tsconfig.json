@@ -20,6 +20,13 @@
     "noImplicitAny": false
   },
   "include": [
-    "src"
+    "src/index.ts",
+    "src/api.ts",
+    "src/routes/**/*.ts"
+  ],
+  "exclude": [
+    "src/api/**",
+    "src/triggers/**",
+    "src/**/*.test.ts"
   ]
 }

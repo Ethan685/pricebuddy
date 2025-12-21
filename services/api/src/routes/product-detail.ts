@@ -15,6 +15,56 @@ productDetailRouter.get(
     try {
       const { productId } = req.params;
 
+      // Handle Global Products (Transient)
+      if (productId.startsWith("global_")) {
+        const { scraperClient } = await import("../clients/scraper-client");
+        const globalData = await scraperClient.getProduct(productId);
+
+        // Map to ProductDetailResponse
+        return res.json({
+          product: {
+            id: productId,
+            title: globalData.title,
+            imageUrl: globalData.imageUrl,
+            attributes: { description: globalData.description }
+          },
+          offers: globalData.offers?.map((o: any, idx: number) => ({
+            id: `offer_${idx}`,
+            marketplace: o.merchant,
+            totalPriceKrw: scraperClient.convertToKrw(o.price, o.currency),
+            itemPriceKrw: scraperClient.convertToKrw(o.price, o.currency),
+            shippingFeeKrw: 0,
+            url: o.url,
+            isGlobal: true
+          })) || []
+        });
+      }
+
+      // Handle Global Products (Transient)
+      if (productId.startsWith("global_")) {
+        const { scraperClient } = await import("../clients/scraper-client");
+        const globalData = await scraperClient.getProduct(productId);
+
+        // Map to ProductDetailResponse
+        return res.json({
+          product: {
+            id: productId,
+            title: globalData.title,
+            imageUrl: globalData.imageUrl,
+            attributes: { description: globalData.description }
+          },
+          offers: globalData.offers?.map((o: any, idx: number) => ({
+            id: `offer_${idx}`,
+            marketplace: o.merchant,
+            totalPriceKrw: scraperClient.convertToKrw(o.price, o.currency),
+            itemPriceKrw: scraperClient.convertToKrw(o.price, o.currency),
+            shippingFeeKrw: 0,
+            url: o.url,
+            isGlobal: true
+          })) || []
+        });
+      }
+
       const productSnap = await firestore
         .collection("products")
         .doc(productId)
@@ -79,7 +129,7 @@ productDetailRouter.get(
       // 가격 히스토리 가져오기 (새로운 구조: price_history_daily)
       // 각 offer의 히스토리를 가져와서 병합
       let historyDaily: PriceHistoryPointDTO[] = [];
-      
+
       if (offers.length > 0) {
         // 첫 번째 offer의 히스토리 사용 (또는 모든 offer의 히스토리 병합 가능)
         const firstOfferId = offers[0].id;
@@ -95,7 +145,7 @@ productDetailRouter.get(
             .limit(30)
             .get()
             .catch(() => null);
-          
+
           if (historySnap) {
             historyDaily = historySnap.docs.map((doc) => {
               const data = doc.data();

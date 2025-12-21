@@ -12,11 +12,30 @@ import { auth } from "@/shared/lib/firebase";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+
+      if (firebaseUser) {
+        // Fetch user profile from Firestore
+        // Note: Real-time listener could be better, but get() is enough for now
+        try {
+          const { doc, getDoc } = await import("firebase/firestore");
+          const { db } = await import("@/shared/lib/firebase");
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (userDoc.exists()) {
+            setUserProfile(userDoc.data());
+          }
+        } catch (e) {
+          console.error("Failed to fetch user profile", e);
+        }
+      } else {
+        setUserProfile(null);
+      }
+
       setLoading(false);
     });
 
@@ -38,10 +57,12 @@ export function useAuth() {
 
   const logout = async () => {
     await signOut(auth);
+    setUserProfile(null);
   };
 
   return {
     user,
+    userProfile,
     loading,
     login,
     signup,
@@ -49,4 +70,5 @@ export function useAuth() {
     logout,
   };
 }
+
 

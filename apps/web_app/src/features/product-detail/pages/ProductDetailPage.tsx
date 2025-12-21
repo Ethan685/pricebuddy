@@ -9,19 +9,35 @@ import { ShareButton } from "../components/ShareButton";
 import { TotalCostCalculator } from "../components/TotalCostCalculator";
 import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
 import { Button } from "@/shared/ui/Button";
+import { Card } from "@/shared/ui/Card";
+import { Badge } from "@/shared/ui/Badge";
+import { formatKrw } from "@/shared/lib/money";
 import { useState } from "react";
 
+const formatPercent = (raw: unknown) => {
+  const v = (typeof raw === "number" && Number.isFinite(raw)) ? raw : null;
+  return v === null ? "—" : `${Math.round(v * 100)}%`;
+};
+
+
 export function ProductDetailPage() {
+
+
   const { productId } = useParams();
   const { t } = useTranslation();
   const { data, isLoading, error } = useProductDetail(productId!);
+
+
 
   return (
     <AsyncBoundary isLoading={isLoading} error={error}>
       {data ? (
         <ProductDetailContent data={data} />
       ) : (
-        <div className="text-center py-8 text-red-400">{t("product.error.loadFailed")}</div>
+        <div className="text-center py-20">
+          <div className="text-6xl mb-4">😕</div>
+          <p className="text-xl text-textMuted">{t("product.error.loadFailed", { defaultValue: "Failed to load product" })}</p>
+        </div>
       )}
     </AsyncBoundary>
   );
@@ -32,19 +48,17 @@ function ProductDetailContent({ data }: { data: any }) {
   const { t } = useTranslation();
   const trackProduct = useTrackProduct();
   const [isTracking, setIsTracking] = useState(false);
-
   const [trackingStatus, setTrackingStatus] = useState<"idle" | "success" | "error">("idle");
 
   const handleTrackPrice = async () => {
     if (!offers || offers.length === 0) {
-      alert(t("product.tracking.noOffers"));
+      alert(t("product.tracking.noOffers", { defaultValue: "No offers available" }));
       return;
     }
 
     setIsTracking(true);
     setTrackingStatus("idle");
     try {
-      // 첫 번째 offer의 URL로 가격 추적 시작
       const firstOffer = offers[0];
       const result = await trackProduct.mutateAsync({
         url: firstOffer.url,
@@ -53,17 +67,12 @@ function ProductDetailContent({ data }: { data: any }) {
       });
 
       setTrackingStatus("success");
-      console.log("Price tracking started:", result);
-
-      // 성공 메시지 표시
       setTimeout(() => {
         setTrackingStatus("idle");
       }, 3000);
     } catch (error) {
-      console.error("Failed to start tracking:", error);
       setTrackingStatus("error");
-      alert(t("product.tracking.failed"));
-
+      alert(t("product.tracking.failed", { defaultValue: "Failed to start tracking" }));
       setTimeout(() => {
         setTrackingStatus("idle");
       }, 3000);
@@ -73,118 +82,131 @@ function ProductDetailContent({ data }: { data: any }) {
   };
 
   return (
-    <div className="flex gap-8 mt-8 flex-col md:flex-row">
-      {/* 왼쪽 상품 이미지 영역 */}
-      <div className="flex-1 rounded-xl bg-slate-900/60 min-h-[400px] flex items-center justify-center">
-        {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.title}
-            className="w-full h-full object-contain rounded-xl"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-          />
-        ) : (
-          <div className="text-slate-500 text-center">
-            <div className="text-4xl mb-2">📱</div>
-            <div className="text-sm">{t("product.imagePreparing")}</div>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* 상단 헤더 */}
+      <div className="mb-8">
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="flex-1">
+            <h1 className="text-4xl md:text-5xl font-black mb-4 bg-gradient-to-r from-primary to-successNeon bg-clip-text text-transparent">
+              {product.title}
+            </h1>
+            {aiSignal && (
+              <Badge variant={aiSignal.label === "BUY" ? "success" : "warning"} className="mb-4">
+                🤖 {t("product.aiSignal", { defaultValue: "AI Recommendation" })}: {aiSignal.label === "BUY" ? t("product.aiSignal.buy", { defaultValue: "Buy Now" }) : t("product.aiSignal.wait", { defaultValue: "Wait" })} ({formatPercent(aiSignal?.score)})
+              </Badge>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* 오른쪽 정보 영역 */}
-      <div className="flex-1 space-y-4">
-        <div className="flex items-start justify-between">
-          <h1 className="text-2xl font-semibold flex-1">{product.title}</h1>
           <ShareButton productId={product.id} productTitle={product.title} />
         </div>
+      </div>
 
-        {/* AI Signal 카드 */}
-        {aiSignal && (
-          <div className="rounded-xl border border-emerald-500/40 bg-emerald-900/20 p-4">
-            <div className="text-sm text-emerald-300">
-              {t("product.aiSignal")}: {aiSignal.label === "BUY" ? t("product.aiSignal.buy") : t("product.aiSignal.wait")}
-            </div>
-            <div className="text-xs text-slate-300 mt-1">
-              {t("recommendations.confidence")}: {Math.round(aiSignal.confidence * 100)}%
-            </div>
-            <div className="text-xs text-slate-400 mt-2">{aiSignal.reason}</div>
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* 왼쪽: 이미지 */}
+        <Card className="p-8 bg-gradient-to-br from-surface/90 to-surface/50">
+          <div className="aspect-square rounded-xl bg-gradient-to-br from-surfaceHighlight to-surface flex items-center justify-center overflow-hidden relative group">
+            {product.imageUrl ? (
+              <>
+                <img
+                  src={product.imageUrl}
+                  alt={product.title}
+                  className="w-full h-full object-contain p-8 group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              </>
+            ) : (
+              <div className="text-center">
+                <div className="text-8xl mb-4 opacity-50">📦</div>
+                <div className="text-textMuted">{t("product.imagePreparing", { defaultValue: "Image preparing..." })}</div>
+              </div>
+            )}
           </div>
-        )}
+        </Card>
 
-        {/* Price Tracking Button */}
-        <div className="space-y-2">
-          <Button
-            variant="primary"
-            onClick={handleTrackPrice}
-            disabled={isTracking || !offers || offers.length === 0}
-            className="w-full"
-          >
-            {isTracking
-              ? t("product.tracking.inProgress")
-              : trackingStatus === "success"
-                ? t("product.tracking.started")
-                : t("product.tracking.start")
-            }
-          </Button>
-          {trackingStatus === "success" && (
-            <div className="text-sm text-emerald-400 text-center">
-              ✅ {t("product.tracking.successMessage")}
-            </div>
+        {/* 오른쪽: 정보 */}
+        <div className="space-y-6">
+          {/* 가격 추적 버튼 */}
+          <Card className="p-6">
+            <Button
+              variant="primary"
+              onClick={handleTrackPrice}
+              disabled={isTracking || !offers || offers.length === 0}
+              className="w-full text-lg py-6 font-bold"
+            >
+              {isTracking
+                ? t("product.tracking.inProgress", { defaultValue: "Starting..." })
+                : trackingStatus === "success"
+                  ? t("product.tracking.started", { defaultValue: "Tracking Started" })
+                  : t("product.tracking.start", { defaultValue: "Start Price Tracking" })
+              }
+            </Button>
+            {trackingStatus === "success" && (
+              <div className="text-sm text-successNeon text-center mt-3">
+                ✅ {t("product.tracking.successMessage", { defaultValue: "Price tracking started successfully" })}
+              </div>
+            )}
+            {trackingStatus === "error" && (
+              <div className="text-sm text-red-400 text-center mt-3">
+                ❌ {t("product.tracking.errorMessage", { defaultValue: "Failed to start price tracking" })}
+              </div>
+            )}
+          </Card>
+
+          {/* 가격 알림 */}
+          <PriceAlertButton
+            productId={product.id}
+            currentPrice={offers?.[0]?.totalPriceKrw || 0}
+          />
+
+          {/* Truth Engine */}
+          {offers && offers.length > 0 && (
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold mb-4 text-textMain">
+                {t("product.truthEngine.title", { defaultValue: "💸 The Real Price (Truth Engine)" })}
+              </h2>
+              <TotalCostCalculator
+                basePrice={offers[0].price || offers[0].totalPriceKrw || 0}
+                shipping={offers[0].shippingFee || offers[0].shippingFeeKrw || 0}
+                tax={offers[0].tax || 0}
+                duty={offers[0].duty || 0}
+                currency={offers[0].currency || "KRW"}
+              />
+            </Card>
           )}
-          {trackingStatus === "error" && (
-            <div className="text-sm text-red-400 text-center">
-              ❌ {t("product.tracking.errorMessage")}
-            </div>
-          )}
-        </div>
 
-        {/* Price Alert */}
-        <PriceAlertButton
-          productId={product.id}
-          currentPrice={offers?.[0]?.totalPriceKrw || 0}
-        />
-
-        {/* Price History & Forecast */}
-        {historyDaily && historyDaily.length > 0 && <PriceHistoryChart data={historyDaily} />}
-
-        {/* Truth Engine: Total Cost Breakdown */}
-        {offers && offers.length > 0 && (
-          <div className="space-y-4 mb-6">
-            <h2 className="text-xl font-display font-bold text-textMain">{t("product.truthEngine.title") || "💸 The Real Price (Truth Engine)"}</h2>
-            <TotalCostCalculator
-              basePrice={offers[0].price || 0}
-              shipping={offers[0].shippingFee || 0}
-              tax={offers[0].tax || 0}
-              duty={offers[0].duty || 0}
-              currency={offers[0].currency || "KRW"}
-            />
-          </div>
-        )}
-
-        {/* Offers Comparison */}
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold mb-2 text-textMain">{t("product.priceComparison")}</h2>
-          {offers && offers.length > 0 ? (
-            <div className="flex overflow-x-auto md:block space-x-4 md:space-x-0 md:space-y-3 pb-4 md:pb-0 snap-x hide-scrollbar">
-              {offers.map((offer: any, index: number) => (
-                <div key={offer.id} className={`min-w-[280px] md:min-w-0 snap-center transform transition-all duration-300 ${index === 0 ? 'scale-[1.02] ring-2 ring-primary shadow-neon-blue/20 rounded-xl z-10' : ''}`}>
-                  <PriceCard offer={offer} />
-                  {index === 0 && (
-                    <div className="absolute -top-3 -right-2 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg z-20">
-                      BEST CHOICE
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-textMuted text-center py-4">{t("product.noPriceInfo")}</div>
+          {/* 가격 비교 */}
+          {offers && offers.length > 0 && (
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold mb-4 text-textMain">
+                {t("product.priceComparison", { defaultValue: "Price Comparison" })}
+              </h2>
+              <div className="space-y-4">
+                {offers.map((offer: any, index: number) => (
+                  <div key={`${offer.id ?? offer.seller ?? 'offer'}-${offer.url ?? 'url'}-${index}`} className={`relative ${index === 0 ? 'ring-2 ring-primary rounded-xl p-2' : ''}`}>
+                    {index === 0 && (
+                      <Badge variant="success" className="absolute -top-3 -right-2 z-10">
+                        BEST
+                      </Badge>
+                    )}
+                    <PriceCard offer={offer} />
+                  </div>
+                ))}
+              </div>
+            </Card>
           )}
         </div>
       </div>
+
+      {/* 가격 히스토리 */}
+      {historyDaily && historyDaily.length > 0 && (
+        <Card className="mt-8 p-6">
+          <h2 className="text-2xl font-bold mb-4 text-textMain">Price History</h2>
+          <PriceHistoryChart data={historyDaily} />
+        </Card>
+      )}
     </div>
   );
 }
-

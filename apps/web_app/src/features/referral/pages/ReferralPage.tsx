@@ -34,9 +34,10 @@ export function ReferralPage() {
     try {
       setLoading(true);
       const [codeData, statsData] = await Promise.all([
-        httpGet<{ code: string }>(`/api/referrals/code?userId=${user.uid}`),
-        httpGet<ReferralStats>(`/api/referrals/stats?userId=${user.uid}`),
+        httpGet<{ code: string }>(`/api/referral/code?userId=${user.uid}`),
+        httpGet<ReferralStats>(`/api/referral/stats?userId=${user.uid}`),
       ]);
+
 
       setReferralCode(codeData.code);
       setStats(statsData);

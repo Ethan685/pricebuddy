@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { shareToKakao, copyToClipboard, generateShareUrl } from "@/shared/lib/share";
-import { useLanguage } from "@/shared/context/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface ShareButtonProps {
   productId: string;
@@ -10,7 +10,7 @@ interface ShareButtonProps {
 }
 
 export function ShareButton({ productId, productTitle }: ShareButtonProps) {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 

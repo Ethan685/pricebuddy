@@ -18,7 +18,7 @@ export function PaymentSuccessPage() {
   useEffect(() => {
     if (paymentId && transactionId && user) {
       // 결제 확인
-      httpPost("/payment/verify", {
+      httpPost("/api/payment/verify", {
         paymentId,
         transactionId,
       })

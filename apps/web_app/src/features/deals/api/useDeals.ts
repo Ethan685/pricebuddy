@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { httpGet } from "@/shared/lib/http";
 import { mockDeals } from "@/shared/data/mockDeals";
 
 export type Deal = {
@@ -75,62 +76,47 @@ function normalizeDeal(d: any): Deal {
 }
 
 export function useDeals(limit = 8) {
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const useMock = import.meta.env.VITE_USE_MOCK === "1";
+
+  const [deals, setDeals] = useState<Deal[]>(mockDeals.slice(0, limit));
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let alive = true;
+    let cancelled = false;
 
     async function run() {
-      setLoading(true);
       setError(null);
 
+      if (useMock) {
+        setDeals(mockDeals.slice(0, limit));
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
       try {
-        // GA 출시: API 실패 시 Mock 데이터 사용
-        const res = await fetch(`/api/deals?limit=${limit}`, {
-          headers: { Accept: "application/json" },
-        });
-
-        if (!res.ok) {
-          throw new Error(`API ${res.status}`);
-        }
-
-        const json = (await res.json()) as DealsResponse;
-        const arr = Array.isArray(json?.deals) ? json.deals : [];
-        const normalized = arr.map(normalizeDeal).filter((x) => x.id && x.title);
-        
-        // API에서 데이터가 없거나 빈 배열이면 Mock 데이터 사용
-        if (alive) {
-          if (normalized.length > 0) {
-            setDeals(normalized);
-          } else {
-            // Mock 데이터 사용 (GA 출시 준비)
-            console.log("Using mock deals data for GA launch");
-            setDeals(mockDeals.slice(0, limit));
-          }
-        }
+        const data = await httpGet<DealsResponse>(`/api/deals?limit=${encodeURIComponent(String(limit))}`);
+        const list = Array.isArray(data?.deals) ? data.deals.map(normalizeDeal) : [];
+        if (!cancelled) setDeals(list.slice(0, limit));
       } catch (e: any) {
-        // API 실패 시 Mock 데이터로 폴백 (GA 출시 준비)
-        if (alive) {
-          console.warn("API failed, using mock data:", e?.message);
-          setDeals(mockDeals.slice(0, limit));
-          setError(null); // Mock 데이터 사용 시 에러 표시 안 함
-        }
+        if (!cancelled) setError(String(e?.message || e));
       } finally {
-        if (alive) setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     run();
     return () => {
-      alive = false;
+      cancelled = true;
     };
-  }, [limit]);
+  }, [limit, useMock]);
 
-  return { 
-    deals, 
-    loading, 
-    error 
+  const sliced = useMemo(() => deals.slice(0, limit), [deals, limit]);
+
+  return {
+    deals: sliced,
+    loading,
+    error,
   };
 }

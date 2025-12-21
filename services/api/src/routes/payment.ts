@@ -89,6 +89,7 @@ paymentRouter.post("/verify", async (req, res, next) => {
         // 사용자 구독 정보 업데이트
         await firestore.collection("users").doc(paymentData.userId).update({
           subscriptionPlan: paymentData.planId,
+          subscriptionTier: "premium",
           subscriptionStatus: "active",
           subscriptionStartedAt: new Date().toISOString(),
         });

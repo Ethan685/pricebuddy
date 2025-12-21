@@ -64,7 +64,7 @@ const PLANS: SubscriptionPlan[] = [
 ];
 
 export function SubscriptionPage() {
-  const { user } = useAuthContext();
+  const { user, userProfile } = useAuthContext();
   const { t } = useLanguage();
   const [selectedPlan, setSelectedPlan] = useState<string>("premium");
   const [loading, setLoading] = useState(false);
@@ -78,22 +78,39 @@ export function SubscriptionPage() {
     const plan = PLANS.find((p) => p.id === planId);
     if (!plan || plan.price === 0) return;
 
+    if (!confirm(`${plan.name} (${formatKrw(plan.price)}) 결제를 진행하시겠습니까? (Mock Payment)`)) {
+      return;
+    }
+
     setLoading(true);
     try {
-      // 결제 요청
+      // 1. 결제 요청 (Mock)
       const result = await httpPost<{
         success: boolean;
         paymentId: string;
         transactionId: string;
-      }>("/api/payments/checkout", {
+      }>("/api/payment/subscribe", {
+        userId: user.uid,
         planId,
+        amount: plan.price,
+        customerEmail: user.email,
       });
 
       if (result.success && result.paymentId) {
-        // 결제 페이지로 리다이렉트 (PortOne/Toss Payments)
-        // 실제로는 결제 제공업체의 결제 페이지로 이동
-        const paymentUrl = `${import.meta.env.VITE_API_BASE_URL || ""}/payment/redirect?paymentId=${result.paymentId}`;
-        window.location.href = paymentUrl;
+        // 2. 결제 검증 (Mock)
+        // 실제로는 PG사 결제창 -> 리다이렉트 -> 검증 순서지만, 여기서는 바로 검증 호출
+        const verifyResult = await httpPost<{ success: boolean }>("/api/payment/verify", {
+          paymentId: result.paymentId,
+          transactionId: result.transactionId,
+        });
+
+        if (verifyResult.success) {
+          alert(t("subscription.paymentSuccess"));
+          // 페이지 새로고침하여 구독 상태 반영
+          window.location.reload();
+        } else {
+          alert(t("subscription.paymentFailed"));
+        }
       } else {
         alert(t("subscription.paymentFailed"));
       }
@@ -104,6 +121,7 @@ export function SubscriptionPage() {
       setLoading(false);
     }
   };
+
 
   if (!user) {
     return (
@@ -129,11 +147,10 @@ export function SubscriptionPage() {
         {PLANS.map((plan) => (
           <Card
             key={plan.id}
-            className={`relative ${
-              plan.popular
-                ? "border-emerald-500/40 bg-emerald-900/10 scale-105"
-                : ""
-            }`}
+            className={`relative ${plan.popular
+              ? "border-emerald-500/40 bg-emerald-900/10 scale-105"
+              : ""
+              }`}
           >
             {plan.popular && (
               <Badge
@@ -175,13 +192,15 @@ export function SubscriptionPage() {
               variant={plan.popular ? "primary" : "secondary"}
               className="w-full"
               onClick={() => handleSubscribe(plan.id)}
-              disabled={loading || plan.id === "free"}
+              disabled={loading || plan.id === "free" || (userProfile?.subscriptionTier === "premium" && plan.id !== "free")}
             >
               {plan.id === "free"
                 ? t("subscription.currentPlan")
-                : loading
-                ? t("common.processing")
-                : t("subscription.subscribe")}
+                : (userProfile?.subscriptionTier === "premium")
+                  ? t("subscription.currentPlan")
+                  : loading
+                    ? t("common.processing")
+                    : t("subscription.subscribe")}
             </Button>
           </Card>
         ))}

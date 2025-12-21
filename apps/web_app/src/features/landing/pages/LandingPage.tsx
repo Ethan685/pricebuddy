@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/ui/Button";
@@ -6,248 +5,182 @@ import { Card } from "@/shared/ui/Card";
 import { Badge } from "@/shared/ui/Badge";
 import { formatKrw } from "@/shared/lib/money";
 import { useDeals } from "@/features/deals/api/useDeals";
-import { AsyncBoundary } from "@/shared/ui/AsyncBoundary";
-import { OnboardingWizard } from "../components/OnboardingWizard";
 
 export function LandingPage() {
   const { t } = useTranslation();
-  const { deals, loading: dealsLoading } = useDeals(8);
-  const [showWizard, setShowWizard] = useState(false);
-
-  useEffect(() => {
-    const hasOnboarded = localStorage.getItem("pricebuddy_onboarded");
-    if (!hasOnboarded) {
-      const timer = setTimeout(() => setShowWizard(true), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  const handleOnboardingComplete = (interests: string[]) => {
-    localStorage.setItem("pricebuddy_onboarded", "true");
-    localStorage.setItem("pricebuddy_interests", JSON.stringify(interests));
-    setShowWizard(false);
-  };
-
-  const handleOnboardingSkip = () => {
-    localStorage.setItem("pricebuddy_onboarded", "true");
-    setShowWizard(false);
-  };
-
+  const { deals } = useDeals(8);
   const displayDeals = deals.length > 0 ? deals.slice(0, 4) : [];
 
   return (
-    <div className="min-h-screen">
-      {showWizard && (
-        <OnboardingWizard
-          onComplete={handleOnboardingComplete}
-          onSkip={handleOnboardingSkip}
-        />
-      )}
-
-      {/* Hero Section - Full Width with Gradient */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/30 rounded-full blur-[120px] animate-pulse-slow" />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-successNeon/30 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: "1s" }} />
+    <div className="min-h-screen bg-surface selection:bg-primary/30 text-textMain overflow-x-hidden">
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center pt-20 pb-32 overflow-hidden">
+        {/* Abstract Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[80vw] h-[80vw] bg-primary/10 rounded-full blur-[120px] mix-blend-screen animate-pulse-slow" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-successNeon/10 rounded-full blur-[100px] mix-blend-screen animate-pulse-slow" style={{ animationDelay: "3s" }} />
+          <div className="absolute top-[40%] left-[30%] w-[40vw] h-[40vw] bg-primary/5 rounded-full blur-[80px] mix-blend-overlay" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 py-20 text-center">
-          <div className="mb-8 animate-fade-in">
-            <h1 className="text-7xl md:text-8xl lg:text-9xl font-display font-black mb-8 leading-tight">
-              <span className="bg-gradient-to-r from-primary via-successNeon to-primary bg-clip-text text-transparent animate-gradient">
-                {t("landing.hero.title")}
-              </span>
-            </h1>
-            <p className="text-2xl md:text-3xl text-textMuted mb-12 max-w-4xl mx-auto leading-relaxed font-light">
-              {t("landing.hero.subtitle")}
-            </p>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8 animate-fade-in shadow-glass">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-successNeon opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-successNeon"></span>
+            </span>
+            <span className="text-sm font-medium text-textMain/80 tracking-wide">AI-Powered Price Intelligence</span>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20 animate-fade-in delay-[200ms]">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[1.1] animate-fade-in drop-shadow-2xl">
+            <span className="block text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/50 pb-2">
+              {t("landing.hero.title")}
+            </span>
+          </h1>
+
+          <p className="text-xl md:text-2xl text-textMuted mb-12 max-w-2xl mx-auto leading-relaxed font-light animate-fade-in delay-100">
+            {t("landing.hero.subtitle")}
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-5 justify-center items-center animate-fade-in delay-200">
             <Link to="/search">
-              <Button 
-                variant="primary" 
-                className="text-xl px-12 py-6 rounded-2xl shadow-neon-blue hover:shadow-neon-blue/50 transform hover:scale-110 transition-all duration-300 font-bold"
+              <Button
+                variant="primary"
+                className="h-14 px-8 text-lg rounded-full shadow-[0_0_40px_-10px_rgba(59,130,246,0.5)] hover:shadow-[0_0_60px_-15px_rgba(59,130,246,0.6)] hover:scale-105 transition-all duration-300 font-semibold bg-gradient-to-r from-primary to-primaryDark border-none"
               >
-                {t("landing.hero.startButton")} →
+                {t("landing.hero.startButton")}
               </Button>
             </Link>
             <Link to="/deals">
-              <Button 
-                variant="secondary" 
-                className="text-xl px-12 py-6 rounded-2xl hover:scale-110 transition-all duration-300 font-bold"
+              <Button
+                variant="secondary"
+                className="h-14 px-8 text-lg rounded-full border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all duration-300 font-medium backdrop-blur-sm"
               >
                 {t("landing.hero.dealsButton")}
               </Button>
             </Link>
           </div>
 
-          {/* Stats - Large Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto animate-slide-up delay-[400ms]">
-            <Card className="p-10 text-center hover:border-primary/50 transition-all hover:scale-105 hover:shadow-neon-blue/20">
-              <div className="text-7xl font-black text-successNeon mb-4 font-display">{t("landing.stats.productsValue")}</div>
-              <div className="text-xl text-textMuted font-medium">{t("landing.stats.products")}</div>
-            </Card>
-            <Card className="p-10 text-center hover:border-primary/50 transition-all hover:scale-105 hover:shadow-neon-blue/20">
-              <div className="text-7xl font-black text-successNeon mb-4 font-display">{t("landing.stats.usersValue")}</div>
-              <div className="text-xl text-textMuted font-medium">{t("landing.stats.users")}</div>
-            </Card>
-            <Card className="p-10 text-center hover:border-primary/50 transition-all hover:scale-105 hover:shadow-neon-blue/20">
-              <div className="text-7xl font-black text-successNeon mb-4 font-display">{t("landing.stats.savingsValue")}</div>
-              <div className="text-xl text-textMuted font-medium">{t("landing.stats.savings")}</div>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Features - Modern Grid */}
-      <section className="py-32 relative">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-6xl font-black text-center mb-20 bg-gradient-to-r from-textMain to-textMuted bg-clip-text text-transparent">
-            {t("landing.features.title")}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-10">
-            <Card className="p-10 hover:border-primary/50 transition-all hover:scale-105 group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10">
-                <div className="text-7xl mb-8 group-hover:scale-110 transition-transform duration-300">🔍</div>
-                <h3 className="text-3xl font-bold mb-6 group-hover:text-primary transition-colors">{t("landing.features.comparison.title")}</h3>
-                <p className="text-lg text-textMuted leading-relaxed">
-                  {t("landing.features.comparison.desc")}
-                </p>
-              </div>
-            </Card>
-            <Card className="p-10 hover:border-primary/50 transition-all hover:scale-105 group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-successNeon/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10">
-                <div className="text-7xl mb-8 group-hover:scale-110 transition-transform duration-300">📊</div>
-                <h3 className="text-3xl font-bold mb-6 group-hover:text-primary transition-colors">{t("landing.features.ai.title")}</h3>
-                <p className="text-lg text-textMuted leading-relaxed">
-                  {t("landing.features.ai.desc")}
-                </p>
-              </div>
-            </Card>
-            <Card className="p-10 hover:border-primary/50 transition-all hover:scale-105 group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10">
-                <div className="text-7xl mb-8 group-hover:scale-110 transition-transform duration-300">💰</div>
-                <h3 className="text-3xl font-bold mb-6 group-hover:text-primary transition-colors">{t("landing.features.cashback.title")}</h3>
-                <p className="text-lg text-textMuted leading-relaxed">
-                  {t("landing.features.cashback.desc")}
-                </p>
-              </div>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works - Step by Step */}
-      <section className="py-32 bg-surface/30 relative">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-6xl font-black text-center mb-20 bg-gradient-to-r from-textMain to-textMuted bg-clip-text text-transparent">
-            {t("landing.howToUse.title")}
-          </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* Stats Glass Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-24 max-w-5xl mx-auto animate-slide-up delay-300">
             {[
-              { icon: "🔍", title: t("landing.howToUse.step1.title"), desc: t("landing.howToUse.step1.desc") },
-              { icon: "📊", title: t("landing.howToUse.step2.title"), desc: t("landing.howToUse.step2.desc") },
-              { icon: "🔔", title: t("landing.howToUse.step3.title"), desc: t("landing.howToUse.step3.desc") },
-              { icon: "💰", title: t("landing.howToUse.step4.title"), desc: t("landing.howToUse.step4.desc") },
-            ].map((step, idx) => (
-              <Card key={idx} className="text-center p-10 hover:border-primary/50 transition-all hover:scale-105 group relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative z-10">
-                  <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">{step.icon}</div>
-                  <h3 className="text-2xl font-bold mb-4 group-hover:text-primary transition-colors">{step.title}</h3>
-                  <p className="text-textMuted leading-relaxed">{step.desc}</p>
+              { value: t("landing.stats.productsValue"), label: t("landing.stats.products") },
+              { value: t("landing.stats.usersValue"), label: t("landing.stats.users") },
+              { value: t("landing.stats.savingsValue"), label: t("landing.stats.savings") },
+            ].map((stat, idx) => (
+              <div key={idx} className="group relative p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all duration-500 hover:-translate-y-1">
+                <div className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60 mb-2 font-display">
+                  {stat.value}
                 </div>
-              </Card>
+                <div className="text-sm font-medium text-textMuted uppercase tracking-wider">{stat.label}</div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Deals Section - Carousel */}
+      {/* Features Section */}
       <section className="py-32 relative">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-6xl font-black bg-gradient-to-r from-textMain to-textMuted bg-clip-text text-transparent">
-              {t("landing.deals.title")}
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-24">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">
+              {t("landing.features.title")}
             </h2>
+            <div className="h-1 w-20 bg-primary/50 mx-auto rounded-full" />
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { icon: "✨", title: t("landing.features.comparison.title"), desc: t("landing.features.comparison.desc") },
+              { icon: "🤖", title: t("landing.features.ai.title"), desc: t("landing.features.ai.desc") },
+              { icon: "💎", title: t("landing.features.cashback.title"), desc: t("landing.features.cashback.desc") },
+            ].map((feature, idx) => (
+              <div key={idx} className="group p-10 rounded-[2rem] bg-gradient-to-br from-white/[0.03] to-transparent border border-white/5 hover:border-primary/30 transition-all duration-500 relative overflow-hidden">
+                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-2xl" />
+                <div className="relative z-10">
+                  <div className="text-5xl mb-8 transform group-hover:scale-110 transition-transform duration-500">{feature.icon}</div>
+                  <h3 className="text-xl font-bold mb-4 text-white group-hover:text-primary transition-colors">{feature.title}</h3>
+                  <p className="text-textMuted leading-relaxed">{feature.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Deals Section */}
+      <section className="py-32 bg-black/20 relative border-y border-white/5">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-6">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">{t("landing.deals.title")}</h2>
+              <p className="text-lg text-textMuted">{t("landing.deals.subtitle")}</p>
+            </div>
             <Link to="/deals">
-              <Button variant="secondary" className="text-lg px-8 py-4 rounded-xl hover:scale-105 transition-transform">
-                {t("landing.deals.viewAll")} →
-              </Button>
+              <span className="text-primary hover:text-primaryDark transition-colors font-medium flex items-center gap-2 group">
+                {t("landing.deals.viewAll")} <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </span>
             </Link>
           </div>
 
-          {dealsLoading ? (
-            <div className="grid md:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <div className="bg-surface h-64 rounded-xl mb-4" />
-                  <div className="h-6 bg-surfaceHighlight rounded mb-2" />
-                  <div className="h-4 bg-surfaceHighlight rounded w-2/3" />
-                </Card>
-              ))}
-            </div>
-          ) : displayDeals.length === 0 ? (
-            <Card className="p-20 text-center">
-              <div className="text-8xl mb-6">🎁</div>
-              <p className="text-2xl text-textMuted mb-8">{t("deals.empty")}</p>
+          {displayDeals.length === 0 ? (
+            <div className="p-20 text-center rounded-3xl border border-white/5 bg-white/[0.02] backdrop-blur-sm">
+              <div className="text-6xl mb-6 opacity-50">🏷️</div>
+              <p className="text-xl text-textMuted mb-8">{t("deals.empty")}</p>
               <Link to="/search">
-                <Button variant="primary" className="text-lg px-8 py-4">Start Searching</Button>
+                <Button variant="primary" className="rounded-full px-8 py-3">Start Searching</Button>
               </Link>
-            </Card>
+            </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {displayDeals.map((deal) => (
-                <Link key={deal.id} to={`/products/${deal.productId || deal.id}`} className="group">
-                  <Card className="h-full hover:border-primary/50 transition-all duration-300 cursor-pointer relative overflow-hidden hover:shadow-neon-blue/20 hover:-translate-y-2">
-                    {deal.isFlashDeal && (
-                      <Badge variant="error" className="absolute top-4 right-4 z-10 animate-pulse-slow shadow-lg">
-                        🔥 {t("deal.flash")}
-                      </Badge>
-                    )}
-                    <div className="bg-surface h-64 rounded-xl mb-4 flex items-center justify-center overflow-hidden relative group-hover:scale-105 transition-transform duration-500">
+                <Link key={deal.id} to={`/products/${deal.productId || deal.id}`} className="group block">
+                  <div className="h-full rounded-2xl bg-surfaceHighlight border border-white/5 overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 flex flex-col">
+                    <div className="relative aspect-[4/3] bg-surface overflow-hidden">
                       {deal.imageUrl ? (
                         <img
                           src={deal.imageUrl}
                           alt={deal.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-successNeon/20 flex items-center justify-center">
-                          <span className="text-7xl">📦</span>
+                        <div className="w-full h-full flex items-center justify-center bg-white/5">
+                          <span className="text-4xl opacity-20">📦</span>
                         </div>
                       )}
-                    </div>
-                    <h3 className="font-bold mb-4 line-clamp-2 text-xl group-hover:text-primary transition-colors">{deal.title}</h3>
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="text-successNeon font-black text-2xl">
-                        {formatKrw(deal.price || deal.discountedPrice || 0)}
-                      </span>
-                      {deal.originalPrice && deal.originalPrice > (deal.price || deal.discountedPrice || 0) && (
-                        <>
-                          <span className="text-textMuted line-through text-sm">
-                            {formatKrw(deal.originalPrice)}
-                          </span>
-                          {deal.discountPercent && (
-                            <Badge variant="error" className="text-xs">
-                              -{deal.discountPercent}%
-                            </Badge>
-                          )}
-                        </>
+
+                      {deal.isFlashDeal && (
+                        <Badge variant="error" className="absolute top-3 right-3 shadow-lg backdrop-blur-md border border-red-500/30">
+                          {t("deal.flash")}
+                        </Badge>
+                      )}
+
+                      {deal.discountPercent && deal.discountPercent > 0 && (
+                        <Badge variant="error" className="absolute bottom-3 left-3 shadow-lg font-bold text-lg">
+                          -{deal.discountPercent}%
+                        </Badge>
                       )}
                     </div>
-                    <div className="flex items-center justify-between text-sm text-textMuted pt-4 border-t border-border/30">
-                      <span className="font-medium">{deal.marketplace || "Global"}</span>
+
+                    <div className="p-5 flex flex-col flex-1">
+                      <div className="text-xs font-medium text-primary mb-2 uppercase tracking-wide">
+                        {deal.marketplace || "Global"}
+                      </div>
+                      <h3 className="font-semibold text-lg text-white mb-auto line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                        {deal.title}
+                      </h3>
+
+                      <div className="mt-4 pt-4 border-t border-white/5 flex items-baseline justify-between">
+                        <span className="text-2xl font-bold text-white">
+                          {formatKrw(deal.price || deal.discountedPrice || 0)}
+                        </span>
+                        {deal.originalPrice && deal.originalPrice > (deal.price || deal.discountedPrice || 0) && (
+                          <span className="text-sm text-textMuted line-through">
+                            {formatKrw(deal.originalPrice)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </Card>
+                  </div>
                 </Link>
               ))}
             </div>
@@ -257,24 +190,20 @@ export function LandingPage() {
 
       {/* CTA Section */}
       <section className="py-32 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-surface/60 to-successNeon/20" />
-        <div className="absolute inset-0">
-          <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse-slow" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-successNeon/20 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: "1s" }} />
-        </div>
-        <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-7xl md:text-8xl font-black mb-8 bg-gradient-to-r from-primary via-successNeon to-primary bg-clip-text text-transparent">
+        <div className="absolute inset-0 bg-primary/5" />
+        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-5xl md:text-6xl font-bold text-white mb-8 tracking-tight">
             {t("landing.cta.title")}
           </h2>
-          <p className="text-2xl md:text-3xl text-textMuted mb-12 leading-relaxed">
+          <p className="text-xl text-textMuted mb-12 max-w-2xl mx-auto">
             {t("landing.cta.subtitle")}
           </p>
           <Link to="/search">
-            <Button 
-              variant="primary" 
-              className="text-2xl px-16 py-8 rounded-2xl shadow-neon-blue hover:shadow-neon-blue/50 transform hover:scale-110 transition-all duration-300 font-black"
+            <Button
+              variant="primary"
+              className="h-16 px-12 text-xl rounded-full shadow-[0_0_50px_-10px_rgba(59,130,246,0.5)] hover:shadow-[0_0_70px_-15px_rgba(59,130,246,0.6)] hover:scale-105 transition-all duration-300 font-bold"
             >
-              {t("landing.cta.button")} →
+              {t("landing.cta.button")}
             </Button>
           </Link>
         </div>

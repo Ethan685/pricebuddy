@@ -13,7 +13,7 @@ export const seedDemoProducts = functions.region("asia-northeast3").https.onRequ
         id: "p_iphone_15_128",
         product: {
           title: "아이폰 15 128GB",
-          imageUrl: "https://via.placeholder.com/400x400.png?text=iPhone15",
+          imageUrl: "/img/product-placeholder.svg",
           minPriceKrw: 1200000,
           maxPriceKrw: 1550000,
           updatedAt: now,
@@ -28,7 +28,7 @@ export const seedDemoProducts = functions.region("asia-northeast3").https.onRequ
         id: "p_airpods_pro_2",
         product: {
           title: "에어팟 프로 2",
-          imageUrl: "https://via.placeholder.com/400x400.png?text=AirPods+Pro+2",
+          imageUrl: "/img/product-placeholder.svg",
           minPriceKrw: 285000,
           maxPriceKrw: 359000,
           updatedAt: now,
@@ -43,7 +43,7 @@ export const seedDemoProducts = functions.region("asia-northeast3").https.onRequ
         id: "p_dyson_v15",
         product: {
           title: "다이슨 V15",
-          imageUrl: "https://via.placeholder.com/400x400.png?text=Dyson+V15",
+          imageUrl: "/img/product-placeholder.svg",
           minPriceKrw: 699000,
           maxPriceKrw: 990000,
           updatedAt: now,

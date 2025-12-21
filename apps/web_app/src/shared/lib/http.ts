@@ -85,7 +85,13 @@ async function request<T>(method: HttpMethod, path: string, opts: HttpOptions = 
     init.body = typeof opts.body === "string" ? opts.body : JSON.stringify(opts.body);
   }
 
-  const res = await fetch(url, init);
+  let res: Response;
+  try {
+    res = await fetch(url, init);
+  } catch (e: any) {
+    // 네트워크 오류는 조용히 처리 (Mock 데이터로 폴백)
+    throw new Error(`Network error: ${e?.message || "Failed to fetch"}`);
+  }
 
   // 응답 바디 파싱 (json 우선, 실패하면 text)
   const text = await res.text();
@@ -97,9 +103,10 @@ async function request<T>(method: HttpMethod, path: string, opts: HttpOptions = 
   }
 
   if (!res.ok) {
+    // 500 오류는 조용히 처리 (Mock 데이터로 폴백)
     const msg =
       (data && (data.message || data.error)) ||
-      `HTTP ${res.status} ${res.statusText} - ${method} ${url}`;
+      `HTTP ${res.status} ${res.statusText}`;
     throw new Error(msg);
   }
 

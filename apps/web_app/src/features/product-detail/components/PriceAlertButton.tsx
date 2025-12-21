@@ -3,7 +3,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import { httpPost } from "@/shared/lib/http";
-import { useLanguage } from "@/shared/context/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface PriceAlertButtonProps {
   productId: string;
@@ -12,7 +12,7 @@ interface PriceAlertButtonProps {
 
 export function PriceAlertButton({ productId, currentPrice }: PriceAlertButtonProps) {
   const { user } = useAuthContext();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [targetPrice, setTargetPrice] = useState(currentPrice * 0.9); // 기본값: 10% 할인
   const [isSet, setIsSet] = useState(false);

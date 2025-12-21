@@ -12,4 +12,5 @@ export interface PriceAlert {
 
   createdAt: string;
   triggeredAt?: string;
+  lastNotifiedAt?: string;
 }

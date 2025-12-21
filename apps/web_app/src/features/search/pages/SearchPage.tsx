@@ -50,11 +50,35 @@ export function SearchPage() {
 
             <select
               value={region}
-              onChange={(e) => setRegion(e.target.value as "global" | "kr")}
-              className="px-6 py-2 rounded-xl bg-surfaceHighlight/50 text-textMain border-none focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer"
+              onChange={(e) => setRegion(e.target.value as any)}
+              className="px-6 py-2 rounded-xl bg-surfaceHighlight/50 text-textMain border-none focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer max-w-[150px]"
             >
-              <option value="global">{t("search.region.global")}</option>
-              <option value="kr">{t("search.region.kr")}</option>
+              <optgroup label="Global">
+                <option value="global">{t("search.region.global", "Global")}</option>
+              </optgroup>
+              <optgroup label="Asia">
+                <option value="kr">🇰🇷 Korea</option>
+                <option value="jp">🇯🇵 Japan</option>
+                <option value="cn">🇨🇳 China</option>
+                <option value="sg">🇸🇬 Singapore</option>
+                <option value="au">🇦🇺 Australia</option>
+                <option value="id">🇮🇩 Indonesia</option>
+                <option value="th">🇹🇭 Thailand</option>
+                <option value="vn">🇻🇳 Vietnam</option>
+                <option value="in">🇮🇳 India</option>
+              </optgroup>
+              <optgroup label="North America">
+                <option value="us">🇺🇸 USA</option>
+                <option value="ca">🇨🇦 Canada</option>
+                <option value="mx">🇲🇽 Mexico</option>
+              </optgroup>
+              <optgroup label="Europe">
+                <option value="uk">🇬🇧 UK</option>
+                <option value="de">🇩🇪 Germany</option>
+                <option value="fr">🇫🇷 France</option>
+                <option value="it">🇮🇹 Italy</option>
+                <option value="es">🇪🇸 Spain</option>
+              </optgroup>
             </select>
 
             <Button
@@ -83,8 +107,8 @@ export function SearchPage() {
         </div>
       </div>
 
-      <AsyncBoundary 
-        isLoading={isLoading} 
+      <AsyncBoundary
+        isLoading={isLoading}
         error={error ? (typeof error === "string" ? error : error.message || "An error occurred") : null}
       >
         {data && data.results.length > 0 ? (

@@ -12,11 +12,13 @@
     "scrape_jobs": "pnpm run build && node -e \"const fs=require('fs'),path=require('path');const root=path.join(process.cwd(),'lib');function find(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory()){const r=find(p);if(r)return r;}else if(e.isFile()&&e.name==='scrape-jobs.js')return p;}}const f=find(root);if(!f){console.error('scrape-jobs.js not found under',root);process.exit(1);}console.log('running',f);require(f);\""
   },
   "dependencies": {
+    "@types/uuid": "^11.0.0",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "firebase-admin": "^12.0.0",
-    "firebase-functions": "^4.5.0"
+    "firebase-functions": "^4.5.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { firestore } from "../lib/firestore";
-import { generateAffiliateLink } from "../lib/affiliate-clients";
+import { generateAffiliateLink } from "../lib/affiliate";
 
 export const cashbackRouter = Router();
 
@@ -75,30 +75,33 @@ const AFFILIATE_RATES: Record<string, number> = {
   allegro: 0.015, // 1.5%
 };
 
+
 /**
- * POST /cashback/generate-link
- * 제휴 링크 생성
+ * POST /cashback/click
+ * Record user click and generate affiliate link
  */
-cashbackRouter.post("/generate-link", async (req, res, next) => {
+cashbackRouter.post("/click", async (req, res, next) => {
   try {
-    const { userId, productUrl, marketplace } = req.body;
+    const { userId, productUrl, marketplace, productId } = req.body;
 
     if (!userId || !productUrl) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // 제휴 링크 생성
+    // Generate Affiliate Link
     const affiliateLink = await generateAffiliateLink(marketplace, productUrl, userId);
 
-    // 링크 저장
+    // Record Click
     const linkDoc = await firestore.collection("affiliate_links").add({
       userId,
       originalUrl: productUrl,
       affiliateLink,
       marketplace,
+      productId: productId || null,
       createdAt: new Date().toISOString(),
-      clicks: 0,
+      clicks: 1,
       conversions: 0,
+      status: "clicked"
     });
 
     res.json({
@@ -110,6 +113,7 @@ cashbackRouter.post("/generate-link", async (req, res, next) => {
     next(e);
   }
 });
+
 
 /**
  * POST /cashback/track-purchase

@@ -141,6 +141,6 @@ function extractBrand(title: string): string {
 }
 
 function getDefaultImageUrl(): string {
-    return "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&h=400&fit=crop";
+    return "/img/product-placeholder.svg";
 }
 

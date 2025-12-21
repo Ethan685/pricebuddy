@@ -35,6 +35,8 @@ type State = {
 };
 
 export function useSearch(query: string, region?: string) {
+  const useMock = import.meta.env.VITE_USE_MOCK === "1";
+
   const q = (query || "").trim();
   const r = (region || "KR").trim();
 
@@ -57,37 +59,41 @@ export function useSearch(query: string, region?: string) {
 
       setState((s) => ({ ...s, loading: true, error: null }));
 
+      if (useMock) {
+        setTimeout(() => {
+          if (cancelled) return;
+          const safe: SearchResponse = {
+            ok: true,
+            q,
+            region: r,
+            results: mockSearchResults,
+          };
+          setState({ loading: false, error: null, data: safe });
+        }, 200);
+        return;
+      }
+
       try {
-        const data = await httpGet<SearchResponse>("/api/search", {
-          query: q,
-          region: r,
-        });
-
-        if (cancelled) return;
-
-        // Hard safety: ensure consistent shape
-        const results = Array.isArray(data?.results) ? data.results : [];
-        
-        // GA 출시: API 결과가 없으면 Mock 데이터 사용
-        const safe: SearchResponse = {
-          ok: !!data?.ok,
-          q: data?.q ?? q,
-          region: data?.region ?? r,
-          results: results.length > 0 ? results : mockSearchResults,
-        };
-
-        setState({ loading: false, error: null, data: safe });
-      } catch (e: any) {
-        // API 실패 시 Mock 데이터로 폴백 (GA 출시 준비)
-        if (cancelled) return;
-        console.warn("Search API failed, using mock data:", e?.message);
+        const data = await httpGet<any>(`/api/search?q=${encodeURIComponent(q)}&region=${encodeURIComponent(r)}`);
+        // API returns { results: [...] }, but we also check items for compatibility
+        const rawList = data?.results || data?.items;
+        const raw = Array.isArray(rawList) ? rawList : [];
+        const results = raw.map((x: any) => ({
+          ...x,
+          id: x.id ?? x.productId,
+          productId: x.productId ?? x.id,
+          image: x.image ?? x.imageUrl,
+          imageUrl: x.imageUrl ?? x.image
+        }));
         const safe: SearchResponse = {
           ok: true,
-          q: q,
+          q,
           region: r,
-          results: mockSearchResults,
+          results,
         };
-        setState({ loading: false, error: null, data: safe });
+        if (!cancelled) setState({ loading: false, error: null, data: safe });
+      } catch (e: any) {
+        if (!cancelled) setState({ loading: false, error: String(e?.message || e), data: null });
       }
     }
 
@@ -95,7 +101,7 @@ export function useSearch(query: string, region?: string) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, q, r]);
+  }, [enabled, q, r, useMock]);
 
   const results = useMemo(() => state.data?.results ?? [], [state.data]);
 

@@ -4,12 +4,14 @@ import { User as FirebaseUser } from "firebase/auth";
 
 interface AuthContextType {
   user: FirebaseUser | null;
+  userProfile: any | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<any>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

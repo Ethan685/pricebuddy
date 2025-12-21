@@ -17,8 +17,9 @@ module.exports = {
         display: ["ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        "neon-blue": "0 0 20px rgba(79, 126, 255, 0.3)",
-        "glass-card": "0 8px 32px rgba(0, 0, 0, 0.3)",
+        "neon-blue": "0 0 20px rgba(79, 126, 255, 0.3), 0 0 40px rgba(79, 126, 255, 0.1)",
+        "glass-card": "0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+        "card-hover": "0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(79, 126, 255, 0.2)",
       },
       animation: {
         "fade-in": "fadeIn 0.5s ease-in",

@@ -16,7 +16,7 @@ const testProducts = [
         brand: 'Apple',
         category: 'Electronics',
         minPrice: 1490000,
-        imageUrl: 'https://via.placeholder.com/300x300?text=iPhone+15+Pro',
+        imageUrl: '/img/product-placeholder.svg',
         createdAt: admin.firestore.Timestamp.now(),
     },
     {
@@ -26,7 +26,7 @@ const testProducts = [
         brand: 'Apple',
         category: 'Electronics',
         minPrice: 1290000,
-        imageUrl: 'https://via.placeholder.com/300x300?text=iPhone+15',
+        imageUrl: '/img/product-placeholder.svg',
         createdAt: admin.firestore.Timestamp.now(),
     },
     {
@@ -36,7 +36,7 @@ const testProducts = [
         brand: 'Apple',
         category: 'Computers',
         minPrice: 1590000,
-        imageUrl: 'https://via.placeholder.com/300x300?text=MacBook+Air',
+        imageUrl: '/img/product-placeholder.svg',
         createdAt: admin.firestore.Timestamp.now(),
     },
     {
@@ -46,7 +46,7 @@ const testProducts = [
         brand: 'Apple',
         category: 'Audio',
         minPrice: 359000,
-        imageUrl: 'https://via.placeholder.com/300x300?text=AirPods+Pro',
+        imageUrl: '/img/product-placeholder.svg',
         createdAt: admin.firestore.Timestamp.now(),
     },
     {
@@ -56,7 +56,7 @@ const testProducts = [
         brand: 'Samsung',
         category: 'Electronics',
         minPrice: 1690000,
-        imageUrl: 'https://via.placeholder.com/300x300?text=Galaxy+S24',
+        imageUrl: '/img/product-placeholder.svg',
         createdAt: admin.firestore.Timestamp.now(),
     }
 ];
